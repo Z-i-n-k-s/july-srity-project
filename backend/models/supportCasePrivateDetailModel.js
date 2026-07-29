@@ -19,7 +19,7 @@ const injuredPersonSchema = new mongoose.Schema(
 
 const injuryDetailsSchema = new mongoose.Schema(
   {
-    injuryDate: { type: Date, required: true },
+    injuryDate: { type: Date, default: null },
     injuryLocation: { type: String, trim: true, default: null },
     injuryDescription: { type: String, required: true, trim: true },
     currentCondition: { type: String, trim: true, default: null },

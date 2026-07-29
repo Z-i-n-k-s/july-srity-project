@@ -1,6 +1,8 @@
 const mongoose = require("mongoose");
 const {
   SUPPORT_RELATIONSHIPS,
+  SUPPORT_TYPES,
+  INJURY_LEVELS,
   SUPPORT_PRIORITIES,
   SUPPORT_CASE_STATUSES,
 } = require("./modelEnums");
@@ -12,6 +14,11 @@ const supportCaseSchema = new mongoose.Schema(
       required: true,
       trim: true,
       unique: true,
+    },
+    clientDraftId: {
+      type: String,
+      trim: true,
+      default: null,
     },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
@@ -36,8 +43,14 @@ const supportCaseSchema = new mongoose.Schema(
       required: true,
     },
     supportTypes: {
-      type: [String],
+      type: [{ type: String, enum: SUPPORT_TYPES }],
       default: [],
+    },
+    injuryLevel: {
+      type: String,
+      enum: INJURY_LEVELS,
+      default: "NEEDS_ATTENTION",
+      index: true,
     },
     title: {
       type: String,
@@ -117,6 +130,10 @@ supportCaseSchema.index(
   }
 );
 supportCaseSchema.index({ createdBy: 1, createdAt: -1 });
+supportCaseSchema.index(
+  { createdBy: 1, clientDraftId: 1 },
+  { unique: true, partialFilterExpression: { clientDraftId: { $type: "string" } } }
+);
 supportCaseSchema.index({ status: 1, priority: -1, submittedAt: 1 });
 supportCaseSchema.index({ assignedAdminIds: 1, status: 1 });
 

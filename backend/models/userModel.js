@@ -104,6 +104,14 @@ const userSchema = new mongoose.Schema(
   {
     timestamps: true,
     versionKey: false,
+    toJSON: {
+      transform(_document, result) {
+        delete result.passwordHash;
+        delete result.passwordResetTokenHash;
+        delete result.passwordResetTokenExpiresAt;
+        return result;
+      },
+    },
   }
 );
 

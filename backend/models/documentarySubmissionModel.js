@@ -14,6 +14,11 @@ const documentarySubmissionSchema = new mongoose.Schema(
       trim: true,
       unique: true,
     },
+    clientDraftId: {
+      type: String,
+      trim: true,
+      default: null,
+    },
     submittedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -53,6 +58,12 @@ const documentarySubmissionSchema = new mongoose.Schema(
       default: null,
       index: true,
     },
+    locationDescription: {
+      type: String,
+      trim: true,
+      maxlength: 1000,
+      default: null,
+    },
     locationId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Location",
@@ -89,6 +100,20 @@ const documentarySubmissionSchema = new mongoose.Schema(
     originalSourceUrl: {
       type: String,
       trim: true,
+      default: null,
+    },
+    correctionTargetItemId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "DocumentaryItem",
+      default: null,
+    },
+    correctionReason: {
+      type: String,
+      trim: true,
+      maxlength: 3000,
+      required() {
+        return this.submissionType === "CORRECTION";
+      },
       default: null,
     },
     anonymityPreference: {
@@ -168,6 +193,10 @@ const documentarySubmissionSchema = new mongoose.Schema(
 );
 
 documentarySubmissionSchema.index({ submittedBy: 1, createdAt: -1 });
+documentarySubmissionSchema.index(
+  { submittedBy: 1, clientDraftId: 1 },
+  { unique: true, partialFilterExpression: { clientDraftId: { $type: "string" } } }
+);
 documentarySubmissionSchema.index({ status: 1, assignedAdminId: 1, submittedAt: 1 });
 documentarySubmissionSchema.index({ eventId: 1, status: 1 });
 

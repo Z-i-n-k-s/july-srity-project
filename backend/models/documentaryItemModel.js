@@ -2,6 +2,8 @@ const mongoose = require("mongoose");
 const {
   DOCUMENTARY_CONTENT_TYPES,
   DOCUMENTARY_ITEM_STATUSES,
+  PUBLIC_VERIFICATION_STATUSES,
+  SENSITIVITY_LEVELS,
 } = require("./modelEnums");
 
 const documentaryItemSchema = new mongoose.Schema(
@@ -94,6 +96,30 @@ const documentaryItemSchema = new mongoose.Schema(
       type: String,
       trim: true,
       maxlength: 3000,
+      default: null,
+    },
+    verificationStatus: {
+      type: String,
+      enum: PUBLIC_VERIFICATION_STATUSES,
+      default: "UNVERIFIED",
+      index: true,
+    },
+    sourceLabel: {
+      type: String,
+      trim: true,
+      maxlength: 250,
+      default: null,
+    },
+    sensitivityLevel: {
+      type: String,
+      enum: SENSITIVITY_LEVELS,
+      default: "NONE",
+      index: true,
+    },
+    contentWarning: {
+      type: String,
+      trim: true,
+      maxlength: 1000,
       default: null,
     },
     status: {

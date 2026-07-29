@@ -5,6 +5,7 @@ const {
   MEDIA_VISIBILITIES,
   UPLOAD_STATUSES,
   MODERATION_STATUSES,
+  SENSITIVITY_LEVELS,
 } = require("./modelEnums");
 
 const mediaAssetSchema = new mongoose.Schema(
@@ -92,6 +93,12 @@ const mediaAssetSchema = new mongoose.Schema(
       type: String,
       enum: MODERATION_STATUSES,
       default: "PENDING",
+      index: true,
+    },
+    sensitivityLevel: {
+      type: String,
+      enum: SENSITIVITY_LEVELS,
+      default: "NONE",
       index: true,
     },
     checksum: {
