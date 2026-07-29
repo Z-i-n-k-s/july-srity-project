@@ -1,70 +1,222 @@
-# Getting Started with Create React App
+# July Smriti Archive — Complete User and Admin Frontend
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A React/Create React App frontend for a privacy-first documentary archive, injured-person support workflow, verified missing-person information and administrator review system.
 
-## Available Scripts
+## What is included
 
-In the project directory, you can run:
+### User experience
 
-### `npm start`
+- Dark documentary landing page with cinematic slider, archive previews, timeline, stories, support, missing-person and verification sections.
+- Existing authentication routes and fetch-based backend connection preserved.
+- Universal evidence submission for written testimony, stories, photographs, videos, audio, PDF, Word and text documents.
+- Multi-file preview, drag/drop, file removal, validation and local draft saving.
+- Identity controls: anonymous, pseudonym or public name.
+- Privacy controls: metadata removal request, name/contact redaction, face protection, voice protection and publication permission.
+- Every submission starts private and pending administrator review.
+- Private support requests with protected image/PDF uploads.
+- Support Rooms with user/admin messages, image preview, PDF cards and case progress.
+- Missing-person report image preview and private possible-sighting reports.
+- Archive, story, timeline and missing-person pages load from backend endpoints with local demo fallback.
+- Account dashboard, submissions, support rooms, reports, drafts and profile pages.
+- English/Bangla language switch across navigation, authentication, major landing content, user pages and admin UI.
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+### Administrator experience
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+- Role-protected `/admin-panel` routes.
+- Dashboard totals and review queues.
+- Review mixed evidence, stories and documentary uploads.
+- Preview protected images, videos and document files returned by the backend.
+- Approve, reject, source-check or request more information.
+- Confirm privacy processing before approval.
+- Review support cases, answer users and preview selected attachments.
+- Verify or reject requested medical documents without publishing them.
+- Review missing-person reports and approve only safe public fields.
+- Manage public archive derivatives, publishing, unpublishing and correction notes.
+- Existing all-users management retained and restyled.
 
-### `npm test`
+## Technology
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+- React 18
+- Create React App / `react-scripts`
+- React Router 6
+- Redux Toolkit
+- Tailwind CSS 3
+- Framer Motion
+- Lucide React and React Icons
+- Native `fetch` with cookie credentials
 
-### `npm run build`
+## Start
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+```bash
+npm install
+cp .env.example .env
+npm start
+```
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+Production build:
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+```bash
+npm run build
+```
 
-### `npm run eject`
+## Environment
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+```env
+REACT_APP_BACKEND_URL=http://localhost:8080
+REACT_APP_DEMO_FALLBACK=false
+```
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+Use `REACT_APP_DEMO_FALLBACK=false` when testing real backend validation. With fallback enabled, list pages can continue displaying demonstration content while an endpoint is unavailable.
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+## Routing and permissions
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+The original nested `createBrowserRouter` structure is preserved and extended through a single role-aware `ProtectedRoute`.
 
-## Learn More
+- Guests are redirected to `/login`.
+- Normal users are redirected to `/home`.
+- Administrators are redirected to `/admin-panel`.
+- User-only pages accept `USER`.
+- Administrator pages accept `ADMIN`.
+- Shared archive pages accept both roles.
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+The original route names remain available, including `/home`, `/wallets`, and `/admin-panel/all-users`. Full route and permission details are documented in [`ROUTING_AND_PERMISSIONS.md`](./ROUTING_AND_PERMISSIONS.md).
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+## Backend connection
 
-### Code Splitting
+Existing authentication endpoint names in `src/common/index.js` were not replaced. New endpoint definitions follow the same pattern. Shared fetch helpers are in `src/lib/api.js`.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+All authenticated requests use:
 
-### Analyzing the Bundle Size
+```js
+credentials: "include"
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+### Universal evidence form
 
-### Making a Progressive Web App
+`POST /api/submissions` as `multipart/form-data`.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+Repeated file field:
 
-### Advanced Configuration
+```text
+files
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+Important text fields include:
 
-### Deployment
+```text
+title
+summary
+storyText
+eventDate
+location
+sourceType
+sourceNotes
+type
+contentTypes            JSON array
+identityPreference
+pseudonym
+publicationPermission
+archiveVisibility
+privacyControls         JSON object
+removeMetadata
+redactNames
+protectFaces
+protectVoices
+allowAdminContact
+consent
+accuracy
+privacyConfirmed
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+The backend must store original files privately. It must never publish an original upload automatically. Public archive content should be a separate admin-approved and privacy-processed derivative.
 
-### `npm run build` fails to minify
+### Support requests
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+`POST /api/support/requests` as `multipart/form-data`.
+
+Repeated private document field:
+
+```text
+documents
+```
+
+The UI accepts images and PDF files up to 10 MB each. Medical documents must be accessible only to the requester and authorised support administrators.
+
+### Support messages
+
+User:
+
+```text
+POST /api/support/rooms/:roomId/messages
+```
+
+Admin:
+
+```text
+POST /api/admin/support-cases/:caseId/messages
+```
+
+Payload is `multipart/form-data` with `message` and optional `file`. Return a protected attachment object when possible:
+
+```json
+{
+  "success": true,
+  "data": {
+    "attachment": {
+      "name": "requested-document.jpg",
+      "type": "image/jpeg",
+      "size": 218934,
+      "url": "short-lived-signed-url"
+    }
+  }
+}
+```
+
+### Missing-person report
+
+`POST /api/missing-persons/reports` as `multipart/form-data` with optional image field `photo`.
+
+Possible sightings:
+
+```text
+POST /api/missing-persons/:personId/sightings
+```
+
+Sightings, reporter contacts and exact notes remain private until verified.
+
+### Admin review actions
+
+```text
+GET  /api/admin/dashboard
+GET  /api/admin/submissions
+POST /api/admin/submissions/:id/review
+GET  /api/admin/support-cases
+GET  /api/admin/support-cases/:id
+POST /api/admin/support-cases/:id/messages
+POST /api/admin/support-cases/:caseId/documents/:documentId/verify
+GET  /api/admin/missing-reports
+POST /api/admin/missing-reports/:id/review
+GET  /api/admin/archive
+POST /api/admin/archive/:id/publish
+```
+
+The backend must enforce administrator roles for every `/api/admin/*` route. Frontend route protection is only a UI safeguard.
+
+## Protected-file preview
+
+Admin preview components expect the backend to return short-lived signed URLs or an authenticated streaming endpoint. Never expose permanent public URLs for original evidence, identity documents or medical files.
+
+## Local images
+
+Safe placeholder SVG assets are in `public/images`. Replace them with user-provided or properly licensed images while keeping the same filenames or updating `src/data/landingData.js`.
+
+## Important privacy rules
+
+- Raw submissions are private by default.
+- Admin approval is mandatory before publication.
+- Approval must not publish original files directly.
+- Contributor contact information must never appear on public records.
+- Pseudonyms and anonymity must be enforced server-side.
+- Metadata removal, face protection and voice protection require backend/media processing.
+- Medical documents and support conversations must never enter the public archive.
+- Missing-person sightings must remain private until separately verified.

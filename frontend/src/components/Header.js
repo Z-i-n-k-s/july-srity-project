@@ -1,211 +1,189 @@
-import React, { useState } from "react";
-import {  FaCog, FaSignOutAlt, FaUserCog, FaUser } from "react-icons/fa";
-import { FaUserLarge } from "react-icons/fa6";
+import React, { useEffect, useRef, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { ChevronDown, Languages, LogOut, Menu, Settings, ShieldCheck, User, X } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
-import { Link } from "react-router-dom";
+import { Link, NavLink, useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 import Logo from "./Logo";
 import SummaryApi from "../common";
-import { toast } from "react-toastify";
 import { setUserDetails } from "../store/userSlice";
-import ROLE from "../common/role";
+import { isAdminUser } from "../common/role";
 import ProfileDisplay from "./ProfileDisplay";
+import { navigationItems } from "../data/landingData";
+import { useLanguage } from "../context/LanguageContext";
+import useScrollLock from "../hooks/useScrollLock";
+import Button from "./ui/Button";
+import { cn } from "../lib/utils";
+
+const accountLinks = [
+  { key: "dashboard", to: "/account" },
+  { key: "mySubmissions", to: "/account/submissions" },
+  { key: "supportRooms", to: "/account/support-rooms" },
+  { key: "myReports", to: "/account/reports" },
+  { key: "savedDrafts", to: "/account/drafts" },
+  { key: "profile", to: "/account/profile" },
+];
 
 const Header = () => {
   const user = useSelector((state) => state?.user?.user);
   const dispatch = useDispatch();
-  const [menuDisplay, setMenuDisplay] = useState(false);
+  const navigate = useNavigate();
+  const { language, toggleLanguage, t, pick } = useLanguage();
+  const [scrolled, setScrolled] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const [profileDisplay, setProfileDisplay] = useState(false);
+  const authenticated = Boolean(user?._id || user?.id);
+  const admin = isAdminUser(user);
+  const profileRef = useRef(null);
+  useScrollLock(mobileOpen);
 
-  const handelLogout = async () => {
-    const fetchData = await fetch(SummaryApi.logout_user.url, {
-      method: SummaryApi.logout_user.method,
-      credentials: "include",
-    });
-    const data = await fetchData.json();
-    if (data.success) {
-      toast.success(data.message);
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 18);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useEffect(() => {
+    const onKey = (event) => {
+      if (event.key === "Escape") {
+        setMobileOpen(false);
+        setProfileOpen(false);
+      }
+    };
+    const onClick = (event) => {
+      if (profileRef.current && !profileRef.current.contains(event.target)) setProfileOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    document.addEventListener("mousedown", onClick);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("mousedown", onClick);
+    };
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      const response = await fetch(SummaryApi.logout_user.url, {
+        method: SummaryApi.logout_user.method,
+        credentials: "include",
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok || payload?.error) throw new Error(payload?.message || "Unable to sign out.");
+      toast.success(payload?.message || "Signed out successfully.");
+    } catch (error) {
+      toast.info("Local session cleared.");
+    } finally {
       dispatch(setUserDetails(null));
-    }
-    if (data.error) {
-      toast.error(data.message);
+      setProfileOpen(false);
+      setMobileOpen(false);
+      navigate("/login");
     }
   };
 
   return (
     <>
-      <header className="h-16 bg-white border-b border-slate-200 backdrop-blur-sm bg-white/95 sticky top-0 z-40">
-        <div className="h-full container mx-auto flex items-center px-4 lg:px-6 justify-between max-w-7xl">
-          {/* Logo Section */}
-          <div className="flex items-center">
-            <Link to={"/"} className="flex items-center">
-              <Logo w={170} h={60} />
-            </Link>
-          </div>
+      <header className={cn(
+        "fixed inset-x-0 top-0 z-50 border-b transition-all duration-300",
+        scrolled ? "border-white/10 bg-ink-950/92 py-2 shadow-xl backdrop-blur-xl" : "border-white/[0.06] bg-ink-950/35 py-3 backdrop-blur-sm",
+      )}>
+        <div className="page-shell flex h-14 items-center justify-between gap-4">
+          <Logo compact className="shrink-0" />
 
-          {/* Right Section */}
-          <div className="flex items-center gap-3">
-            {user?._id && (
+          <nav className="hidden items-center gap-1 xl:flex" aria-label="Primary navigation">
+            {navigationItems.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                className={({ isActive }) => cn(
+                  "focus-ring relative rounded-lg px-3 py-2 text-sm font-medium transition after:absolute after:inset-x-3 after:-bottom-0.5 after:h-px after:origin-left after:scale-x-0 after:bg-archive-amber after:transition-transform hover:text-white hover:after:scale-x-100",
+                  isActive ? "text-white after:scale-x-100" : "text-[#A8ABB4]",
+                )}
+              >
+                {pick(item.label, item.labelBn)}
+              </NavLink>
+            ))}
+          </nav>
+
+          <div className="hidden items-center gap-2 xl:flex">
+            <button onClick={toggleLanguage} className="focus-ring inline-flex h-10 items-center gap-2 rounded-xl border border-white/10 bg-white/[0.035] px-3 text-xs font-semibold text-[#C6C2BC] hover:border-archive-amber/30 hover:text-white" aria-label="Change language">
+              <Languages className="h-4 w-4" /> {language === "en" ? "বাংলা" : "EN"}
+            </button>
+            {authenticated ? (
               <>
-                {/* User Menu */}
-                <div className="relative">
-                  <button
-                    className="flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 transition-all duration-200 group"
-                    onClick={() => setMenuDisplay((prev) => !prev)}
-                  >
-                    <div className="relative">
-                      {user?.profilePic ? (
-                        <img
-                          src={user?.profilePic}
-                          alt={user?.name}
-                          className="w-8 h-8 rounded-full object-cover ring-2 ring-slate-200 group-hover:ring-blue-300 transition-all duration-200"
-                        />
-                      ) : (
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center ring-2 ring-slate-200 group-hover:ring-blue-300 transition-all duration-200">
-                          <FaUserLarge className="w-4 h-4 text-white" />
-                        </div>
-                      )}
-                      <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
-                    </div>
-
-                    <div className="hidden md:flex flex-col items-start">
-                      <span className="text-sm font-medium text-slate-900 truncate max-w-24">
-                        {user?.name}
-                      </span>
-                      <span className="text-xs text-slate-500 capitalize">
-                        {user?.role}
-                      </span>
-                    </div>
-
-                    <svg
-                      className="w-4 h-4 text-slate-400 transition-transform duration-200 group-hover:text-slate-600"
-                      style={{
-                        transform: menuDisplay
-                          ? "rotate(180deg)"
-                          : "rotate(0deg)",
-                      }}
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M19 9l-7 7-7-7"
-                      />
-                    </svg>
+                {admin ? (
+                  <Button to="/admin-panel" size="sm" showArrow>{t("adminPanel")}</Button>
+                ) : (
+                  <Button to="/submit" size="sm" showArrow>{t("submitEvidence")}</Button>
+                )}
+                <div ref={profileRef} className="relative">
+                  <button onClick={() => setProfileOpen((value) => !value)} className="focus-ring flex min-h-10 items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-3 text-sm text-archive-paper hover:bg-white/[0.07]" aria-expanded={profileOpen} aria-haspopup="menu">
+                    {user?.profilePic ? <img src={user.profilePic} alt="" className="h-7 w-7 rounded-full object-cover" /> : <span className="grid h-7 w-7 place-items-center rounded-full bg-archive-teal/15 text-archive-teal"><User className="h-4 w-4" /></span>}
+                    <span className="max-w-28 truncate">{user?.name || t("account")}</span>
+                    <ChevronDown className={cn("h-4 w-4 text-archive-muted transition", profileOpen && "rotate-180")} />
                   </button>
-
-                  {/* Enhanced Dropdown Menu */}
-                  {menuDisplay && (
-                    <>
-                      {/* Backdrop */}
-                      <div
-                        className="fixed inset-0 z-30"
-                        onClick={() => setMenuDisplay(false)}
-                      ></div>
-
-                      <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-2xl shadow-xl border border-slate-200 z-50 overflow-hidden">
-                        {/* User Info Header */}
-                        <div className="p-4 border-b border-slate-100 bg-slate-50">
-                          <div className="flex items-center gap-3">
-                            {user?.profilePic ? (
-                              <img
-                                src={user?.profilePic}
-                                alt={user?.name}
-                                className="w-10 h-10 rounded-full object-cover"
-                              />
-                            ) : (
-                              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
-                                <FaUserLarge className="w-5 h-5 text-white" />
-                              </div>
-                            )}
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-semibold text-slate-900 truncate">
-                                {user?.name}
-                              </p>
-                              <p className="text-xs text-slate-500 truncate">
-                                {user?.email}
-                              </p>
-                            </div>
-                          </div>
+                  <AnimatePresence>
+                    {profileOpen && (
+                      <motion.div initial={{ opacity: 0, y: 8, scale: .98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 5 }} className="absolute right-0 mt-3 w-64 overflow-hidden rounded-xl border border-white/10 bg-ink-800 p-2 shadow-2xl" role="menu">
+                        <div className="border-b border-white/10 px-3 py-3">
+                          <p className="truncate text-sm font-semibold text-white">{user?.name}</p>
+                          <p className="truncate text-xs text-archive-muted">{user?.email}</p>
                         </div>
-
-                        {/* Menu Items */}
                         <div className="py-2">
-                          <button
-                            className="w-full flex items-center gap-3 px-4 py-3 text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition-colors duration-150"
-                            onClick={() => {
-                              setMenuDisplay(false);
-                              setTimeout(() => setProfileDisplay(true), 100);
-                            }}
-                          >
-                            <FaUserCog className="w-4 h-4" />
-                            <span className="text-sm font-medium">
-                              Profile Settings
-                            </span>
-                          </button>
-
-                          {user?.role === ROLE.ADMIN && (
-                            <Link
-                              to={"/admin-panel/all-users"}
-                              className="w-full flex items-center gap-3 px-4 py-3 text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition-colors duration-150"
-                              onClick={() => setMenuDisplay(false)}
-                            >
-                              <FaCog className="w-4 h-4" />
-                              <span className="text-sm font-medium">
-                                Admin Panel
-                              </span>
-                            </Link>
-                          )}
-
-                          <div className="border-t border-slate-100 my-2"></div>
-
-                          <button
-                            className="w-full flex items-center gap-3 px-4 py-3 text-red-600 hover:bg-red-50 transition-colors duration-150"
-                            onClick={() => {
-                              handelLogout();
-                              setMenuDisplay(false);
-                            }}
-                          >
-                            <FaSignOutAlt className="w-4 h-4" />
-                            <span className="text-sm font-medium">
-                              Sign Out
-                            </span>
-                          </button>
+                          {!admin && accountLinks.map((link) => <Link key={link.to} to={link.to} onClick={() => setProfileOpen(false)} className="focus-ring block rounded-lg px-3 py-2.5 text-sm text-[#C6C2BC] hover:bg-white/5 hover:text-white" role="menuitem">{t(link.key)}</Link>)}
+                          <button onClick={() => { setProfileOpen(false); setProfileDisplay(true); }} className="focus-ring flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-sm text-[#C6C2BC] hover:bg-white/5 hover:text-white"><Settings className="h-4 w-4" />{pick("Quick profile settings", "দ্রুত প্রোফাইল সেটিংস")}</button>
+                          {admin && <Link to="/admin-panel" onClick={() => setProfileOpen(false)} className="focus-ring flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm text-archive-amber hover:bg-archive-amber/10"><ShieldCheck className="h-4 w-4" />{t("adminPanel")}</Link>}
                         </div>
-                      </div>
-                    </>
-                  )}
+                        <button onClick={handleLogout} className="focus-ring flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-sm text-[#E6B4BD] hover:bg-archive-rose/10" role="menuitem"><LogOut className="h-4 w-4" />{t("signOut")}</button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               </>
-            )}
-
-            {/* Login Button for Non-authenticated Users */}
-            {!user?._id && (
-              <Link
-                to={"/login"}
-                className="px-6 py-2.5 rounded-xl text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 font-medium text-sm transition-all duration-200 shadow-sm hover:shadow-md"
-              >
-                Sign In
-              </Link>
+            ) : (
+              <>
+                <Button to="/login" size="sm" variant="ghost">{t("signIn")}</Button>
+                <Button to="/sign-up" size="sm" showArrow>{pick("Create Account", "অ্যাকাউন্ট তৈরি")}</Button>
+              </>
             )}
           </div>
+
+          <div className="flex items-center gap-2 xl:hidden">
+            <button onClick={toggleLanguage} className="focus-ring grid h-11 w-11 place-items-center rounded-xl border border-white/10 bg-white/[0.04]" aria-label="Change language"><Languages className="h-5 w-5" /></button>
+            {!admin && <Link to="/support/new" className="focus-ring hidden min-h-10 items-center gap-2 rounded-xl border border-archive-rose/25 bg-archive-rose/10 px-3 text-xs font-semibold text-[#F0C6CE] sm:flex"><ShieldCheck className="h-4 w-4" />{t("getSupport")}</Link>}
+            <button onClick={() => setMobileOpen(true)} className="focus-ring grid h-11 w-11 place-items-center rounded-xl border border-white/10 bg-white/[0.04]" aria-label="Open navigation menu" aria-expanded={mobileOpen}><Menu className="h-5 w-5" /></button>
+          </div>
         </div>
+
+        <AnimatePresence>
+          {mobileOpen && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[60] bg-ink-950/98 xl:hidden">
+              <div className="page-shell flex min-h-screen flex-col py-4">
+                <div className="flex h-14 items-center justify-between"><Logo /><button onClick={() => setMobileOpen(false)} className="focus-ring grid h-11 w-11 place-items-center rounded-xl border border-white/10" aria-label="Close navigation menu"><X className="h-5 w-5" /></button></div>
+                {authenticated && <div className="mt-6 rounded-xl border border-white/10 bg-white/[0.035] p-4"><p className="text-sm font-semibold text-white">{user?.name}</p><p className="mt-1 text-xs text-archive-muted">{user?.email}</p></div>}
+                <nav className="mt-6 grid gap-1" aria-label="Mobile navigation">
+                  {navigationItems.map((item) => <NavLink key={item.to} to={item.to} onClick={() => setMobileOpen(false)} className={({ isActive }) => cn("focus-ring rounded-xl px-4 py-3.5 text-lg font-medium", isActive ? "bg-archive-amber/10 text-archive-amber" : "text-[#D4D0C9] hover:bg-white/5")}>{pick(item.label, item.labelBn)}</NavLink>)}
+                </nav>
+                {authenticated && !admin && <div className="mt-5 grid grid-cols-2 gap-2">{accountLinks.map((item) => <Link key={item.to} to={item.to} onClick={() => setMobileOpen(false)} className="focus-ring rounded-xl border border-white/10 px-3 py-3 text-sm text-[#C6C2BC]">{t(item.key)}</Link>)}</div>}
+                <div className="mt-auto grid gap-3 pt-8">
+                  {admin ? (
+                    <Button to="/admin-panel" size="lg" showArrow onClick={() => setMobileOpen(false)}>{t("adminPanel")}</Button>
+                  ) : (
+                    <>
+                      <Button to="/support/new" variant="rose" size="lg" onClick={() => setMobileOpen(false)}>{t("getSupport")}</Button>
+                      <Button to="/submit" size="lg" showArrow onClick={() => setMobileOpen(false)}>{t("submitEvidence")}</Button>
+                    </>
+                  )}
+                  {!authenticated ? <Button to="/login" variant="secondary" size="lg" onClick={() => setMobileOpen(false)}>{t("signIn")}</Button> : <Button variant="secondary" size="lg" onClick={handleLogout}>{t("signOut")}</Button>}
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </header>
 
-      {/* Profile Modal - Moved outside header to prevent z-index conflicts */}
-      {profileDisplay && (
-        <ProfileDisplay
-          onClose={() => setProfileDisplay(false)}
-          name={user.name}
-          email={user.email}
-          role={user.role}
-          userId={user._id}
-          profilePic={user.profilePic}
-          callFunc={handelLogout}
-        />
-      )}
+      {profileDisplay && <ProfileDisplay onClose={() => setProfileDisplay(false)} name={user?.name} email={user?.email} role={user?.role} userId={user?._id || user?.id} profilePic={user?.profilePic} callFunc={() => window.location.reload()} />}
     </>
   );
 };

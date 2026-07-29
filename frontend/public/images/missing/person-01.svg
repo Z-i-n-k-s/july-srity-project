@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" role="img" aria-label="Missing-person placeholder">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#29161B"/><stop offset="1" stop-color="#171925"/></linearGradient>
+    <filter id="grain"><feTurbulence baseFrequency=".75" numOctaves="2" seed="7" type="fractalNoise"/><feColorMatrix type="saturate" values="0"/><feComponentTransfer><feFuncA type="table" tableValues="0 .11"/></feComponentTransfer></filter>
+  </defs>
+  <rect width="1200" height="800" fill="url(#g)"/>
+  <circle cx="890" cy="180" r="210" fill="#D79A54" opacity=".12"/>
+  <circle cx="220" cy="700" r="270" fill="#B96776" opacity=".12"/>
+  <g opacity=".7" fill="#F4F1EA">
+    <path d="M120 650c110-180 210-230 320-140 55 45 85 120 118 140H120Z" opacity=".14"/>
+    <path d="M430 650c85-220 205-300 330-170 60 62 82 120 112 170H430Z" opacity=".12"/>
+    <path d="M760 650c75-160 180-225 305-135 55 40 84 90 110 135H760Z" opacity=".13"/>
+  </g>
+  <g stroke="#F4F1EA" stroke-width="12" stroke-linecap="round" opacity=".35">
+    <path d="M180 515v-155m0 0 80 52m-80-52-80 52"/>
+    <path d="M540 510V300m0 0 85 52m-85-52-85 52"/>
+    <path d="M910 500V330m0 0 70 45m-70-45-70 45"/>
+  </g>
+  <rect width="1200" height="800" filter="url(#grain)" opacity=".6"/>
+  <g fill="#F4F1EA">
+    <text x="80" y="105" font-family="Georgia,serif" font-size="48" font-weight="700">Missing-person placeholder</text>
+    <text x="82" y="154" font-family="Arial,sans-serif" font-size="24" opacity=".72">Verified public profile</text>
+  </g>
+</svg>
