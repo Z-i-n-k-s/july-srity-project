@@ -1,3 +1,8 @@
+import Abu from "../assets/stories/abu.webp";
+import Mugdho from "../assets/stories/mugdho.jpg";
+import Priyo from "../assets/stories/priyo.webp";
+import Wasim from "../assets/stories/wasim.jpg";
+
 export const julyChapterSources = [
   {
     label: "UN Human Rights fact-finding report",
@@ -121,8 +126,10 @@ export const formerGovernmentFigures = [
   },
   {
     name: "Obaidul Quader",
-    office: "Road Transport and Bridges Minister; Awami League general secretary",
-    quotation: "The movement was being turned into an anti-government agitation.",
+    office:
+      "Road Transport and Bridges Minister; Awami League general secretary",
+    quotation:
+      "The movement was being turned into an anti-government agitation.",
     context:
       "He publicly framed the protests as being influenced by opposition forces. Student demands later included accountability from senior political figures.",
   },
@@ -135,7 +142,8 @@ export const formerGovernmentFigures = [
   },
   {
     name: "Zunaid Ahmed Palak",
-    office: "State Minister for Posts, Telecommunications and Information Technology",
+    office:
+      "State Minister for Posts, Telecommunications and Information Technology",
     quotation: "Initially attributed outages to damaged infrastructure.",
     context:
       "Internet providers and later reporting documented government instructions to restrict connectivity. This section contrasts contemporary official explanations with later evidence and testimony.",
@@ -157,60 +165,193 @@ export const formerGovernmentFigures = [
 ];
 
 export const interimAdvisers = [
-  { name: "Muhammad Yunus", role: "Chief Adviser", focus: "Led the interim administration sworn in on 8 August 2024." },
-  { name: "Salehuddin Ahmed", role: "Adviser", focus: "Economic and financial administration." },
-  { name: "Asif Nazrul", role: "Adviser", focus: "Law, justice and parliamentary affairs." },
-  { name: "Adilur Rahman Khan", role: "Adviser", focus: "Human rights advocate serving in the advisory council." },
-  { name: "Touhid Hossain", role: "Adviser", focus: "Foreign affairs." },
-  { name: "Syeda Rizwana Hasan", role: "Adviser", focus: "Environment and institutional reform." },
-  { name: "Sharmeen Murshid", role: "Adviser", focus: "Social welfare and related responsibilities." },
-  { name: "Farida Akhter", role: "Adviser", focus: "Fisheries, livestock and public-interest advocacy." },
-  { name: "Nurjahan Begum", role: "Adviser", focus: "Health and family welfare responsibilities." },
-  { name: "AFM Khalid Hossain", role: "Adviser", focus: "Religious affairs." },
-  { name: "Brig Gen (retd) M Sakhawat Hossain", role: "Adviser", focus: "Initially assigned home-affairs responsibilities." },
-  { name: "Hassan Ariff", role: "Adviser", focus: "Local government and related administration." },
-  { name: "Nahid Islam", role: "Student representative and adviser", focus: "One of the movement coordinators appointed to the interim council." },
-  { name: "Asif Mahmud Shojib Bhuyain", role: "Student representative and adviser", focus: "Another movement coordinator appointed to the interim council." },
+  {
+    name: "Muhammad Yunus",
+    role: "Chief Adviser",
+    focus:
+      "Led the interim administration sworn in on 8 August 2024.",
+  },
+  {
+    name: "Salehuddin Ahmed",
+    role: "Adviser",
+    focus: "Economic and financial administration.",
+  },
+  {
+    name: "Asif Nazrul",
+    role: "Adviser",
+    focus: "Law, justice and parliamentary affairs.",
+  },
+  {
+    name: "Adilur Rahman Khan",
+    role: "Adviser",
+    focus: "Human rights advocate serving in the advisory council.",
+  },
+  {
+    name: "Touhid Hossain",
+    role: "Adviser",
+    focus: "Foreign affairs.",
+  },
+  {
+    name: "Syeda Rizwana Hasan",
+    role: "Adviser",
+    focus: "Environment and institutional reform.",
+  },
+  {
+    name: "Sharmeen Murshid",
+    role: "Adviser",
+    focus: "Social welfare and related responsibilities.",
+  },
+  {
+    name: "Farida Akhter",
+    role: "Adviser",
+    focus:
+      "Fisheries, livestock and public-interest advocacy.",
+  },
+  {
+    name: "Nurjahan Begum",
+    role: "Adviser",
+    focus: "Health and family welfare responsibilities.",
+  },
+  {
+    name: "AFM Khalid Hossain",
+    role: "Adviser",
+    focus: "Religious affairs.",
+  },
+  {
+    name: "Brig Gen (retd) M Sakhawat Hossain",
+    role: "Adviser",
+    focus: "Initially assigned home-affairs responsibilities.",
+  },
+  {
+    name: "Hassan Ariff",
+    role: "Adviser",
+    focus: "Local government and related administration.",
+  },
+  {
+    name: "Nahid Islam",
+    role: "Student representative and adviser",
+    focus:
+      "One of the movement coordinators appointed to the interim council.",
+  },
+  {
+    name: "Asif Mahmud Shojib Bhuyain",
+    role: "Student representative and adviser",
+    focus:
+      "Another movement coordinator appointed to the interim council.",
+  },
 ];
 
 export const memorialPeople = [
-  { name: "Abu Sayed", note: "Killed in Rangpur on 16 July; his final moments became a defining image of the uprising." },
-  { name: "Mir Mugdho", note: "A student and volunteer remembered for distributing water before he was killed in Dhaka." },
-  { name: "Wasim Akram", note: "A student killed during protest violence in Chattogram and remembered by fellow protesters." },
-  { name: "Tahir Zaman Priyo", note: "A photographer and father killed while documenting events in Dhaka." },
-  { name: "Sheikh Ashhabul Yamin", note: "A MIST student whose treatment after being shot was documented in verified video evidence." },
-  { name: "Riya Gop", note: "A child whose death became part of the wider record of children killed or injured during the unrest." },
-  { name: "Unidentified and under-documented victims", note: "The archive reserves space for verified records of people whose names, injuries or circumstances remain incomplete." },
+  {
+    name: "Abu Sayed",
+    image: Abu,
+    imageAlt: "Abu Sayed",
+    note:
+      "Killed in Rangpur on 16 July; his final moments became a defining image of the uprising.",
+  },
+  {
+    name: "Mir Mugdho",
+    image: Mugdho,
+    imageAlt: "Mir Mugdho",
+    note:
+      "A student and volunteer remembered for distributing water before he was killed in Dhaka.",
+  },
+  {
+    name: "Wasim Akram",
+    image: Wasim,
+    imageAlt: "Wasim Akram",
+    note:
+      "A student killed during protest violence in Chattogram and remembered by fellow protesters.",
+  },
+  {
+    name: "Tahir Zaman Priyo",
+    image: Priyo,
+    imageAlt: "Tahir Zaman Priyo",
+    note:
+      "A photographer and father killed while documenting events in Dhaka.",
+  },
+  {
+    name: "Sheikh Ashhabul Yamin",
+    image: null,
+    imageAlt: "Sheikh Ashhabul Yamin",
+    note:
+      "A MIST student whose treatment after being shot was documented in verified video evidence.",
+  },
+  {
+    name: "Riya Gop",
+    image: null,
+    imageAlt: "Riya Gop",
+    note:
+      "A child whose death became part of the wider record of children killed or injured during the unrest.",
+  },
+  {
+    name: "Unidentified and under-documented victims",
+    image: null,
+    imageAlt: "Unidentified and under-documented victims",
+    note:
+      "The archive reserves space for verified records of people whose names, injuries or circumstances remain incomplete.",
+  },
 ];
 
 export const socialMemoryPosts = [
   {
     label: "Campus slogan",
     text: "Asked for rights, became a Razakar.",
-    context: "A response to the controversy surrounding the prime minister's 14 July remarks.",
+    context:
+      "A response to the controversy surrounding the prime minister's 14 July remarks.",
   },
   {
     label: "Emergency appeal",
     text: "Save Bangladesh's students.",
-    context: "A widely repeated international-facing appeal across social platforms during the crackdown.",
+    context:
+      "A widely repeated international-facing appeal across social platforms during the crackdown.",
   },
   {
     label: "Red profile campaign",
     text: "Red became a shared sign of mourning, anger and solidarity.",
-    context: "Users replaced profile images or posted red graphics while platforms and connectivity were restricted.",
+    context:
+      "Users replaced profile images or posted red graphics while platforms and connectivity were restricted.",
   },
   {
     label: "Verification culture",
     text: "Save the original file, date, location and source before reposting.",
-    context: "A digital-safety practice used by volunteers trying to preserve evidence and reduce misinformation.",
+    context:
+      "A digital-safety practice used by volunteers trying to preserve evidence and reduce misinformation.",
   },
 ];
 
 export const graffitiStories = [
-  { title: "52 দেখিনি, 24 দেখেছি", translation: "We did not see 1952; we witnessed 2024.", theme: "Generational memory" },
-  { title: "আমার ভাইকে মারলি কেন?", translation: "Why did you kill my brother?", theme: "Grief and accountability" },
-  { title: "Save the country, join the fight", translation: "A call for collective participation.", theme: "Mobilisation" },
-  { title: "একদিকে নাটক করে, অন্যদিকে গুম করে", translation: "A critique connecting public performance with disappearance allegations.", theme: "Aynaghor and enforced disappearance" },
-  { title: "Abu Sayed with open arms", translation: "Murals recreated the posture seen before he was shot.", theme: "Courage and sacrifice" },
-  { title: "Walls as a public archive", translation: "After 5 August, students painted flyovers, campuses and neighbourhood walls with names, demands and visions for a new Bangladesh.", theme: "Memory and rebuilding" },
+  {
+    title: "52 দেখিনি, 24 দেখেছি",
+    translation: "We did not see 1952; we witnessed 2024.",
+    theme: "Generational memory",
+  },
+  {
+    title: "আমার ভাইকে মারলি কেন?",
+    translation: "Why did you kill my brother?",
+    theme: "Grief and accountability",
+  },
+  {
+    title: "Save the country, join the fight",
+    translation: "A call for collective participation.",
+    theme: "Mobilisation",
+  },
+  {
+    title: "একদিকে নাটক করে, অন্যদিকে গুম করে",
+    translation:
+      "A critique connecting public performance with disappearance allegations.",
+    theme: "Aynaghor and enforced disappearance",
+  },
+  {
+    title: "Abu Sayed with open arms",
+    translation:
+      "Murals recreated the posture seen before he was shot.",
+    theme: "Courage and sacrifice",
+  },
+  {
+    title: "Walls as a public archive",
+    translation:
+      "After 5 August, students painted flyovers, campuses and neighbourhood walls with names, demands and visions for a new Bangladesh.",
+    theme: "Memory and rebuilding",
+  },
 ];
