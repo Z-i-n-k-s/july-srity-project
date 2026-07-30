@@ -4,6 +4,7 @@ const submissions = require("../controllers/frontendSubmissionController");
 const support = require("../controllers/frontendSupportController");
 const missing = require("../controllers/frontendMissingController");
 const admin = require("../controllers/frontendAdminController");
+const memoryMap = require("../controllers/mapController");
 const { authenticate, optionalAuthenticate } = require("../middleware/auth");
 const authorize = require("../middleware/authorize");
 const uploads = require("../middleware/frontendUploads");
@@ -11,6 +12,8 @@ const uploads = require("../middleware/frontendUploads");
 const router = express.Router();
 
 // Public product routes used directly by the current React application.
+router.get("/map/locations", memoryMap.summary);
+router.get("/map/locations/:division/memories", memoryMap.listMemories);
 router.get("/archive", publicController.listArchive);
 router.get("/stories", publicController.listStories);
 router.get("/timeline", publicController.listTimeline);

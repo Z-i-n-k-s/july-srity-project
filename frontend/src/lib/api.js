@@ -238,7 +238,63 @@ export const publicApi = {
       },
       fallback,
     ),
+memoryMapSummary: (fallback) =>
+  requestOrFallback(
+    SummaryApi.memoryMapSummary,
+    {
+      method: SummaryApi.memoryMapSummary.method,
+    },
+    fallback,
+  ),
 
+memoryMapMemories: (
+  division,
+  options = {},
+  fallback,
+) => {
+  const safeDivision = requireId(
+    division,
+    "Bangladesh division is required.",
+  );
+
+  const api =
+    SummaryApi.memoryMapMemories(safeDivision);
+
+  const params = new URLSearchParams();
+
+  if (
+    options.type &&
+    options.type !== "all"
+  ) {
+    params.set("type", options.type);
+  }
+
+  if (options.cursor) {
+    params.set("cursor", options.cursor);
+  }
+
+  if (options.limit) {
+    params.set(
+      "limit",
+      String(options.limit),
+    );
+  }
+
+  const query = params.toString();
+
+  return requestOrFallback(
+    {
+      ...api,
+      url: query
+        ? `${api.url}?${query}`
+        : api.url,
+    },
+    {
+      method: api.method,
+    },
+    fallback,
+  );
+},
   missingPersons: (fallback) =>
     requestOrFallback(
       SummaryApi.publicMissingPersons,

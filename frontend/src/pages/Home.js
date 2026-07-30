@@ -10,6 +10,7 @@ import VerificationSection from "../components/landing/VerificationSection";
 import StatsSection from "../components/landing/StatsSection";
 import SubmissionCTA from "../components/landing/SubmissionCTA";
 import FinalCTA from "../components/landing/FinalCTA";
+import InteractiveMemoryMap from "../components/landing/InteractiveMemoryMap";
 
 const Home = () => (
   <>
@@ -17,6 +18,7 @@ const Home = () => (
     <TrustStrip />
     <ArchiveOverview />
     <FeaturedArchive />
+    <InteractiveMemoryMap />
     <TimelinePreview />
     <StoriesSection />
     <SupportSection />
