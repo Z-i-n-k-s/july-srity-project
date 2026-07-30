@@ -14,7 +14,6 @@ import ResetPassword from "../pages/ResetPassword";
 import SignUP from "../pages/SignUP";
 import SubmitEvidencePage from "../pages/SubmitEvidencePage";
 import TimelinePage from "../pages/TimelinePage";
-import WalletPage from "../pages/WalletPage";
 import AdminArchiveManager from "../pages/admin/AdminArchiveManager";
 import AdminDashboard from "../pages/admin/AdminDashboard";
 import AdminMissingReports from "../pages/admin/AdminMissingReports";
@@ -103,7 +102,6 @@ const router = createBrowserRouter([
       { path: "submit", element: userOnly(<SubmitEvidencePage />) },
       { path: "support/new", element: userOnly(<NewSupportRequestPage />) },
       { path: "missing-persons/report", element: userOnly(<ReportMissingPersonPage />) },
-      { path: "wallets", element: userOnly(<WalletPage />) },
       {
         path: "account",
         element: userOnly(<UserShell />),
