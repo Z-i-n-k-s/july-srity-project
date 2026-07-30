@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import Button from "../../components/ui/Button";
 import FormField from "../../components/ui/FormField";
 import PageHeader from "../../components/ui/PageHeader";
+import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../context/ToastContext";
 import useFilePreview from "../../hooks/useFilePreview";
 import useOnlineStatus from "../../hooks/useOnlineStatus";
@@ -11,8 +12,10 @@ import { userApi } from "../../lib/api";
 import { STORAGE_KEYS, storage } from "../../lib/storage";
 import { isFutureLocalDateTime, makeId, toLocalDateInputValue } from "../../lib/utils";
 import { useLanguage } from "../../context/LanguageContext";
+import GoogleMapLocationPicker from "../../components/maps/GoogleMapLocationPicker";
+import { filterOwnedRecords, isOwnedByUser, stampOwner } from "../../lib/ownership";
 
-const initial = { name: "", age: "", relationship: "", lastSeenDate: "", lastSeenLocation: "", clothing: "", description: "", reporterContact: "", visibilityConsent: false, declaration: false };
+const initial = { name: "", age: "", relationship: "", lastSeenDate: "", lastSeenLocation: "", lastSeenLatitude: "", lastSeenLongitude: "", clothing: "", description: "", reporterContact: "", visibilityConsent: false, declaration: false };
 const MAX_PHOTO_SIZE = 10 * 1024 * 1024;
 
 const formatFileSize = (size = 0) => {
@@ -22,6 +25,7 @@ const formatFileSize = (size = 0) => {
 };
 
 export default function ReportMissingPersonPage() {
+  const { user } = useAuth();
   const [values, setValues] = useState(initial);
   const [photo, setPhoto] = useState(null);
   const [errors, setErrors] = useState({});
@@ -35,9 +39,9 @@ export default function ReportMissingPersonPage() {
   const maxReportDate = toLocalDateInputValue();
 
   useEffect(() => {
-    const draft = storage.get(STORAGE_KEYS.drafts, []).find((item) => item.kind === "missing-report");
-    if (draft?.values) setValues(draft.values);
-  }, []);
+    const draft = filterOwnedRecords(storage.get(STORAGE_KEYS.drafts, []), user).find((item) => item.kind === "missing-report");
+    if (draft?.values) setValues({ ...initial, ...draft.values });
+  }, [user]);
 
   const updateValue = (field, value) => {
     setValues((current) => ({ ...current, [field]: value }));
@@ -45,6 +49,21 @@ export default function ReportMissingPersonPage() {
       if (!current[field]) return current;
       const next = { ...current };
       delete next[field];
+      return next;
+    });
+  };
+
+  const updateLastSeenMap = ({ address, latitude, longitude }) => {
+    setValues((current) => ({
+      ...current,
+      lastSeenLocation: address ?? current.lastSeenLocation,
+      lastSeenLatitude: latitude ?? current.lastSeenLatitude,
+      lastSeenLongitude: longitude ?? current.lastSeenLongitude,
+    }));
+    setErrors((current) => {
+      if (!current.lastSeenLocation) return current;
+      const next = { ...current };
+      delete next.lastSeenLocation;
       return next;
     });
   };
@@ -92,7 +111,8 @@ export default function ReportMissingPersonPage() {
 
   const saveDraft = () => {
     const drafts = storage.get(STORAGE_KEYS.drafts, []);
-    storage.set(STORAGE_KEYS.drafts, [...drafts.filter((item) => item.kind !== "missing-report"), { id: makeId("DRAFT"), kind: "missing-report", values, photoName: photo?.name || "", savedAt: new Date().toISOString(), status: "Saved offline" }]);
+    const otherDrafts = drafts.filter((draft) => draft.kind !== "missing-report" || !isOwnedByUser(draft, user));
+    storage.set(STORAGE_KEYS.drafts, [...otherDrafts, stampOwner({ id: makeId("DRAFT"), kind: "missing-report", values, photoName: photo?.name || "", savedAt: new Date().toISOString(), status: "Saved offline" }, user)]);
     toast.success("Missing-person report draft saved on this device.");
   };
 
@@ -108,7 +128,7 @@ export default function ReportMissingPersonPage() {
       const response = await userApi.reportMissingPerson(formData);
       const reports = storage.get(STORAGE_KEYS.missingReports, []);
       const id = response?.data?.id || response?.id || makeId("MPR");
-      storage.set(STORAGE_KEYS.missingReports, [{ id, ...values, photoName: photo?.name || "", status: "Under review", createdAt: new Date().toISOString() }, ...reports]);
+      storage.set(STORAGE_KEYS.missingReports, [stampOwner({ id, ...values, photoName: photo?.name || "", status: "Under review", createdAt: new Date().toISOString(), reporterEmail: user?.email || "" }, user), ...reports]);
       toast.success(pick(`Private report submitted: ${id}`, `ব্যক্তিগত রিপোর্ট জমা হয়েছে: ${id}`));
       navigate("/account/reports");
     } catch (error) { toast.error(error.message); } finally { setLoading(false); }
@@ -121,7 +141,14 @@ export default function ReportMissingPersonPage() {
         <form onSubmit={submit} className="surface-card space-y-6 rounded-2xl p-5 sm:p-7" noValidate>
           <div className="grid gap-5 sm:grid-cols-2"><FormField label="Full name" id="missing-name" error={errors.name} required><input id="missing-name" className="field-control" value={values.name} onChange={(e) => updateValue("name", e.target.value)} /></FormField><FormField label="Age (if known)" id="missing-age"><input id="missing-age" type="number" min="0" max="120" className="field-control" value={values.age} onChange={(e) => updateValue("age", e.target.value)} /></FormField></div>
           <FormField label="Your relationship to the person" id="relationship" hint="Used privately during verification."><input id="relationship" className="field-control" value={values.relationship} onChange={(e) => updateValue("relationship", e.target.value)} /></FormField>
-          <div className="grid gap-5 sm:grid-cols-2"><FormField label="Last-seen date" id="lastSeenDate" error={errors.lastSeenDate} required><input id="lastSeenDate" type="date" className="field-control" value={values.lastSeenDate} max={maxReportDate} onChange={(e) => updateValue("lastSeenDate", e.target.value)} /></FormField><FormField label="Last-seen location" id="lastSeenLocation" error={errors.lastSeenLocation} required><input id="lastSeenLocation" className="field-control" value={values.lastSeenLocation} onChange={(e) => updateValue("lastSeenLocation", e.target.value)} placeholder="Area or landmark" /></FormField></div>
+          <div className="grid gap-5 sm:grid-cols-2"><FormField label={pick("Last-seen date", "শেষ দেখা তারিখ")} id="lastSeenDate" error={errors.lastSeenDate} required><input id="lastSeenDate" type="date" className="field-control" value={values.lastSeenDate} max={maxReportDate} onChange={(e) => updateValue("lastSeenDate", e.target.value)} /></FormField><FormField label={pick("Last-seen location", "শেষ দেখা স্থান")} id="lastSeenLocation" error={errors.lastSeenLocation} required><input id="lastSeenLocation" className="field-control" value={values.lastSeenLocation} onChange={(e) => updateValue("lastSeenLocation", e.target.value)} placeholder={pick("Area, landmark or road", "এলাকা, পরিচিত স্থান বা রাস্তা")} /></FormField></div>
+          <GoogleMapLocationPicker
+            address={values.lastSeenLocation}
+            latitude={values.lastSeenLatitude}
+            longitude={values.lastSeenLongitude}
+            onChange={updateLastSeenMap}
+            error={errors.lastSeenLocation}
+          />
           <FormField label="Clothing or public identifying detail" id="clothing"><input id="clothing" className="field-control" value={values.clothing} onChange={(e) => updateValue("clothing", e.target.value)} /></FormField>
           <FormField label="Additional context" id="missing-description" error={errors.description} required><textarea id="missing-description" rows="6" className="field-control" value={values.description} onChange={(e) => updateValue("description", e.target.value)} /></FormField>
           <FormField label="Private reporter contact" id="reporterContact" error={errors.reporterContact} hint="This is never shown on the public card." required><input id="reporterContact" className="field-control" value={values.reporterContact} onChange={(e) => updateValue("reporterContact", e.target.value)} /></FormField>

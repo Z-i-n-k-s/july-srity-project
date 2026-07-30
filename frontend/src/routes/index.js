@@ -28,6 +28,9 @@ import MissingPersonsPage from "../pages/missing/MissingPersonsPage";
 import ReportMissingPersonPage from "../pages/missing/ReportMissingPersonPage";
 import StoriesPage from "../pages/stories/StoriesPage";
 import StoryDetailsPage from "../pages/stories/StoryDetailsPage";
+import VoicesPage from "../pages/stories/VoicesPage";
+import AynaghorPage from "../pages/stories/AynaghorPage";
+import JulyHistoryPage from "../pages/stories/JulyHistoryPage";
 import NewSupportRequestPage from "../pages/support/NewSupportRequestPage";
 import SupportPage from "../pages/support/SupportPage";
 import SupportRoomPage from "../pages/support/SupportRoomPage";
@@ -128,6 +131,9 @@ const router = createBrowserRouter([
       { path: "timeline", element: protect(<TimelinePage />) },
       { path: "stories", element: protect(<StoriesPage />) },
       { path: "stories/:id", element: protect(<StoryDetailsPage />) },
+      { path: "voices", element: protect(<VoicesPage />) },
+      { path: "aynaghor", element: protect(<AynaghorPage />) },
+      { path: "july-history", element: protect(<JulyHistoryPage />) },
       { path: "support", element: protect(<SupportPage />) },
       { path: "missing-persons", element: protect(<MissingPersonsPage />) },
       {

@@ -16,9 +16,9 @@ A React/Create React App frontend for a privacy-first documentary archive, injur
 - Private support requests with protected image/PDF uploads.
 - Support Rooms with user/admin messages, image preview, PDF cards and case progress.
 - Missing-person report image preview and private possible-sighting reports.
-- Archive, story, timeline and missing-person pages load from backend endpoints with local demo fallback.
+- Public archive, timeline and missing-person pages load from backend endpoints with an optional local demo fallback; the new Stories and Voices collections are intentionally static.
 - Account dashboard, submissions, support rooms, reports, drafts and profile pages.
-- English/Bangla language switch across navigation, authentication, major landing content, user pages and admin UI.
+- English/Bangla language switch backed by Google Website Translator, with the existing local dictionary retained as a fallback.
 
 ### Administrator experience
 
@@ -63,10 +63,16 @@ npm run build
 
 ```env
 REACT_APP_BACKEND_URL=http://localhost:8080
+REACT_APP_CLOUD_NAME_CLOUDINARY=
+REACT_APP_GOOGLE_MAPS_API_KEY=
 REACT_APP_DEMO_FALLBACK=false
 ```
 
-Use `REACT_APP_DEMO_FALLBACK=false` when testing real backend validation. With fallback enabled, list pages can continue displaying demonstration content while an endpoint is unavailable.
+`REACT_APP_GOOGLE_MAPS_API_KEY` enables interactive click-to-pin selection in the missing-person and sighting forms. Without a key, the address, device-location coordinates, Google Maps link and embedded map preview still work.
+
+Administrator pages always load records from the backend and do not substitute mock submissions, support cases, missing reports, dashboard figures or archive records. Keep `REACT_APP_DEMO_FALLBACK=false` for normal development and production.
+
+The existing English/Bangla switch remains the user-facing control. It now also initialises the Google Website Translator so English text outside the manual dictionary is translated when Bangla is active; the local dictionary remains a graceful fallback if the external script is blocked.
 
 ## Routing and permissions
 
@@ -174,7 +180,7 @@ Payload is `multipart/form-data` with `message` and optional `file`. Return a pr
 
 ### Missing-person report
 
-`POST /api/missing-persons/reports` as `multipart/form-data` with optional image field `photo`.
+`POST /api/missing-persons` as `multipart/form-data` with optional image field `photo`. The map picker also submits optional `lastSeenLatitude` and `lastSeenLongitude` fields.
 
 Possible sightings:
 
@@ -182,7 +188,7 @@ Possible sightings:
 POST /api/missing-persons/:personId/sightings
 ```
 
-Sightings, reporter contacts and exact notes remain private until verified.
+Sightings may include optional `latitude` and `longitude` fields. Sightings, reporter contacts, coordinates and exact notes remain private until verified.
 
 ### Admin review actions
 
@@ -194,8 +200,11 @@ GET  /api/admin/support-cases
 GET  /api/admin/support-cases/:id
 POST /api/admin/support-cases/:id/messages
 POST /api/admin/support-cases/:caseId/documents/:documentId/verify
-GET  /api/admin/missing-reports
-POST /api/admin/missing-reports/:id/review
+GET  /api/missing-persons/admin
+GET  /api/missing-persons/:id
+PATCH /api/missing-persons/:id/status
+PATCH /api/missing-persons/:id/assign
+PATCH /api/missing-persons/:id/sightings/:sightingId/status
 GET  /api/admin/archive
 POST /api/admin/archive/:id/publish
 ```

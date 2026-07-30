@@ -15,18 +15,22 @@ import ImageWithFallback from "../../components/ui/ImageWithFallback";
 import Modal from "../../components/ui/Modal";
 import FormField from "../../components/ui/FormField";
 import StatusBadge from "../../components/ui/StatusBadge";
-import { missingPersons } from "../../data/landingData";
 import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../context/ToastContext";
 import { useLanguage } from "../../context/LanguageContext";
 import { publicApi, unwrap, userApi } from "../../lib/api";
 import { STORAGE_KEYS, storage } from "../../lib/storage";
 import { isFutureLocalDateTime, makeId, toLocalDateInputValue } from "../../lib/utils";
+import GoogleMapLocationPicker, { GoogleMapLocationPreview } from "../../components/maps/GoogleMapLocationPicker";
+import { stampOwner } from "../../lib/ownership";
+import { isPublicArchiveRecord } from "../../lib/archiveVisibility";
 
 const initialSighting = {
   date: "",
   time: "",
   location: "",
+  latitude: "",
+  longitude: "",
   details: "",
   contact: "",
   consent: false,
@@ -46,6 +50,39 @@ function formatPublicDate(value) {
     month: "short",
     year: "numeric",
   }).format(date);
+}
+
+function readCoordinates(...sources) {
+  for (const source of sources) {
+    if (!source) continue;
+
+    if (Array.isArray(source) && source.length >= 2) {
+      const longitudeValue = source[0];
+      const latitudeValue = source[1];
+      const hasLatitude = latitudeValue !== null && latitudeValue !== undefined && String(latitudeValue).trim() !== "";
+      const hasLongitude = longitudeValue !== null && longitudeValue !== undefined && String(longitudeValue).trim() !== "";
+      const longitude = Number(longitudeValue);
+      const latitude = Number(latitudeValue);
+      if (hasLatitude && hasLongitude && Number.isFinite(latitude) && Number.isFinite(longitude)) return { latitude, longitude };
+    }
+
+    if (typeof source === "object") {
+      if (Array.isArray(source.coordinates)) {
+        const pair = readCoordinates(source.coordinates);
+        if (pair.latitude !== null && pair.longitude !== null) return pair;
+      }
+
+      const latitudeValue = source.latitude ?? source.lat;
+      const longitudeValue = source.longitude ?? source.lng ?? source.lon;
+      const hasLatitude = latitudeValue !== null && latitudeValue !== undefined && String(latitudeValue).trim() !== "";
+      const hasLongitude = longitudeValue !== null && longitudeValue !== undefined && String(longitudeValue).trim() !== "";
+      const latitude = Number(latitudeValue);
+      const longitude = Number(longitudeValue);
+      if (hasLatitude && hasLongitude && Number.isFinite(latitude) && Number.isFinite(longitude)) return { latitude, longitude };
+    }
+  }
+
+  return { latitude: null, longitude: null };
 }
 
 function normalizeMissingPerson(payload, fallback = null) {
@@ -82,6 +119,14 @@ function normalizeMissingPerson(payload, fallback = null) {
     report?.lastSeenDate ||
     fallbackPerson?.lastSeenDate ||
     null;
+
+  const lastSeenCoordinates = readCoordinates(
+    lastSeen?.locationId,
+    lastSeen,
+    report?.lastSeenCoordinates,
+    { latitude: report?.lastSeenLatitude, longitude: report?.lastSeenLongitude },
+    { latitude: fallbackPerson?.lastSeenLatitude, longitude: fallbackPerson?.lastSeenLongitude },
+  );
 
   return {
     ...fallbackPerson,
@@ -166,6 +211,8 @@ function normalizeMissingPerson(payload, fallback = null) {
       "",
 
     lastSeenLocation: location,
+    lastSeenLatitude: lastSeenCoordinates.latitude,
+    lastSeenLongitude: lastSeenCoordinates.longitude,
 
     lastSeenDate: formatPublicDate(lastSeenDate),
 
@@ -174,7 +221,7 @@ function normalizeMissingPerson(payload, fallback = null) {
     status:
       report?.status ||
       fallbackPerson?.status ||
-      "VERIFIED_MISSING",
+      "",
 
     publicContactAllowed:
       report?.publicContactAllowed ?? false,
@@ -193,15 +240,7 @@ function normalizeMissingPerson(payload, fallback = null) {
 export default function MissingPersonDetailsPage() {
   const { id } = useParams();
 
-  const fallback = useMemo(
-    () =>
-      missingPersons.find(
-        (item) =>
-          String(item.id) === String(id) ||
-          String(item._id) === String(id),
-      ) || null,
-    [id],
-  );
+  const fallback = null;
 
   const [person, setPerson] = useState(() =>
     fallback
@@ -217,7 +256,7 @@ export default function MissingPersonDetailsPage() {
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
 
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const toast = useToast();
   const { pick } = useLanguage();
   const maxSightingDate = toLocalDateInputValue();
@@ -248,9 +287,8 @@ export default function MissingPersonDetailsPage() {
           normalizeMissingPerson(payload, fallback);
 
         if (
-          normalizedPerson?._id ||
-          normalizedPerson?.id ||
-          normalizedPerson?.name
+          (normalizedPerson?._id || normalizedPerson?.id || normalizedPerson?.name) &&
+          isPublicArchiveRecord(normalizedPerson)
         ) {
           setPerson(normalizedPerson);
         } else {
@@ -265,20 +303,14 @@ export default function MissingPersonDetailsPage() {
       } catch (error) {
         if (!active) return;
 
-        if (fallback) {
-          setPerson(
-            normalizeMissingPerson(fallback, fallback),
-          );
-        } else {
-          setPerson(null);
-          setPageError(
-            error.message ||
-              pick(
-                "Unable to load the missing-person profile.",
-                "নিখোঁজ ব্যক্তির প্রোফাইল লোড করা যায়নি।",
-              ),
-          );
-        }
+        setPerson(null);
+        setPageError(
+          error.message ||
+            pick(
+              "Unable to load the missing-person profile.",
+              "নিখোঁজ ব্যক্তির প্রোফাইল লোড করা যায়নি।",
+            ),
+        );
       } finally {
         if (active) {
           setPageLoading(false);
@@ -304,10 +336,11 @@ export default function MissingPersonDetailsPage() {
   };
 
   const updateSightingValue = (field, value) => {
-    setValues((current) => ({
-      ...current,
-      [field]: value,
-    }));
+    setValues((current) => {
+      const next = { ...current, [field]: value };
+      if (field === "date" && current.time && isFutureLocalDateTime(value, current.time)) next.time = "";
+      return next;
+    });
 
     if (errors[field]) {
       setErrors((current) => ({
@@ -315,6 +348,16 @@ export default function MissingPersonDetailsPage() {
         [field]: undefined,
       }));
     }
+  };
+
+  const updateSightingMap = ({ address, latitude, longitude }) => {
+    setValues((current) => ({
+      ...current,
+      location: address ?? current.location,
+      latitude: latitude ?? current.latitude,
+      longitude: longitude ?? current.longitude,
+    }));
+    setErrors((current) => ({ ...current, location: undefined }));
   };
 
   const validateSighting = () => {
@@ -386,12 +429,14 @@ export default function MissingPersonDetailsPage() {
       /*
        * Keep these frontend field names unchanged.
        * The backend should accept:
-       * date, time, location, details, contact and consent.
+       * date, time, location, optional latitude/longitude, details, contact and consent.
        */
       const sightingPayload = {
         date: values.date,
         time: values.time || "",
         location: values.location.trim(),
+        latitude: values.latitude || "",
+        longitude: values.longitude || "",
         details: values.details.trim(),
         contact: values.contact.trim(),
         consent: values.consent,
@@ -409,12 +454,12 @@ export default function MissingPersonDetailsPage() {
 
       storage.set(STORAGE_KEYS.sightings, [
         ...storedSightings,
-        {
+        stampOwner({
           id: makeId("SIGHT"),
           personId: personDatabaseId,
           ...sightingPayload,
           status: "Pending verification",
-        },
+        }, user),
       ]);
 
       toast.success(
@@ -634,6 +679,15 @@ export default function MissingPersonDetailsPage() {
               </div>
             </div>
 
+            {(person.lastSeenLocation && person.lastSeenLocation !== "—") && (
+              <GoogleMapLocationPreview
+                location={person.lastSeenLocation}
+                latitude={person.lastSeenLatitude}
+                longitude={person.lastSeenLongitude}
+                className="mt-5"
+              />
+            )}
+
             <p className="mt-7 leading-8 text-[#C6C2BC]">
               {person.description ||
                 pick(
@@ -804,6 +858,14 @@ export default function MissingPersonDetailsPage() {
                 }
               />
             </FormField>
+
+            <GoogleMapLocationPicker
+              address={values.location}
+              latitude={values.latitude}
+              longitude={values.longitude}
+              onChange={updateSightingMap}
+              error={errors.location}
+            />
 
             <FormField
               label={pick(

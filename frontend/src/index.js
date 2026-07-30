@@ -9,11 +9,13 @@ import { store } from "./store/store";
 import { AuthProvider } from "./context/AuthContext";
 import { ToastProvider } from "./context/ToastContext";
 import { LanguageProvider } from "./context/LanguageContext";
+import GoogleTranslate from "./components/GoogleTranslate";
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
   <Provider store={store}>
     <LanguageProvider>
+      <GoogleTranslate />
       <AuthProvider>
         <ToastProvider>
           <RouterProvider router={router} />

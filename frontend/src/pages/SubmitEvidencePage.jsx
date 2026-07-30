@@ -21,11 +21,13 @@ import EvidenceAttachmentGrid, {
 import Button from "../components/ui/Button";
 import FormField from "../components/ui/FormField";
 import PageHeader from "../components/ui/PageHeader";
+import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import useOnlineStatus from "../hooks/useOnlineStatus";
 import { userApi } from "../lib/api";
 import { STORAGE_KEYS, storage } from "../lib/storage";
 import { makeId } from "../lib/utils";
+import { filterOwnedRecords, isOwnedByUser, stampOwner } from "../lib/ownership";
 
 const MAX_FILES = 20;
 const MAX_FILE_SIZE = 250 * 1024 * 1024;
@@ -80,6 +82,7 @@ const migrateDraftValues = (draftValues = {}) => ({
 });
 
 export default function SubmitEvidencePage() {
+  const { user } = useAuth();
   const [params] = useSearchParams();
   const requestedType = params.get("type");
   const [values, setValues] = useState(() => ({
@@ -96,9 +99,9 @@ export default function SubmitEvidencePage() {
   const isOnline = useOnlineStatus();
 
   useEffect(() => {
-    const draft = storage.get(STORAGE_KEYS.drafts, []).find((item) => item.kind === "evidence");
+    const draft = filterOwnedRecords(storage.get(STORAGE_KEYS.drafts, []), user).find((item) => item.kind === "evidence");
     if (draft?.values) setValues(migrateDraftValues(draft.values));
-  }, []);
+  }, [user]);
 
   const contentTypes = useMemo(() => getContentTypes(values, files), [values, files]);
   const totalFileSize = useMemo(() => files.reduce((sum, file) => sum + file.size, 0), [files]);
@@ -196,7 +199,8 @@ export default function SubmitEvidencePage() {
       savedAt: new Date().toISOString(),
       status: "Saved offline",
     };
-    storage.set(STORAGE_KEYS.drafts, [...drafts.filter((item) => item.kind !== "evidence"), nextDraft]);
+    const otherDrafts = drafts.filter((draft) => draft.kind !== "evidence" || !isOwnedByUser(draft, user));
+    storage.set(STORAGE_KEYS.drafts, [...otherDrafts, stampOwner(nextDraft, user)]);
     toast.success("Private draft saved on this device. Re-select attachment files before submitting.");
   };
 
@@ -233,7 +237,7 @@ export default function SubmitEvidencePage() {
       const response = await userApi.submitEvidence(formData);
       const id = response?.data?.id || response?.id || makeId("SUB");
       const submissions = storage.get(STORAGE_KEYS.submissions, []);
-      storage.set(STORAGE_KEYS.submissions, [{
+      storage.set(STORAGE_KEYS.submissions, [stampOwner({
         id,
         title: values.title,
         type: submissionType,
@@ -246,8 +250,8 @@ export default function SubmitEvidencePage() {
         visibility: "Private",
         updatedAt: "Just now",
         createdAt: "Just now",
-      }, ...submissions]);
-      storage.set(STORAGE_KEYS.drafts, storage.get(STORAGE_KEYS.drafts, []).filter((item) => item.kind !== "evidence"));
+      }, user), ...submissions]);
+      storage.set(STORAGE_KEYS.drafts, storage.get(STORAGE_KEYS.drafts, []).filter((item) => item.kind !== "evidence" || !isOwnedByUser(item, user)));
       toast.success(`Submission received privately: ${id}`);
       navigate("/account/submissions");
     } catch (error) {

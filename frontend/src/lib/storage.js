@@ -30,4 +30,5 @@ export const STORAGE_KEYS = {
   roomMessages: "julySmritiRoomMessages",
   missingReports: "julySmritiMissingReports",
   sightings: "julySmritiSightings",
+  supportRoomAdminOverrides: "julySmritiSupportRoomAdminOverrides",
 };

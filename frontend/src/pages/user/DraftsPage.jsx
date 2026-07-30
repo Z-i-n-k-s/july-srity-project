@@ -5,6 +5,8 @@ import { useToast } from "../../context/ToastContext";
 import useLocalStorage from "../../hooks/useLocalStorage";
 import { STORAGE_KEYS } from "../../lib/storage";
 import { formatDate } from "../../lib/utils";
+import { filterOwnedRecords } from "../../lib/ownership";
+import { useAuth } from "../../context/AuthContext";
 
 const routeForKind = {
   evidence: "/submit",
@@ -20,7 +22,9 @@ const titleForKind = {
 
 export default function DraftsPage() {
   const [drafts, setDrafts] = useLocalStorage(STORAGE_KEYS.drafts, []);
+  const { user } = useAuth();
   const toast = useToast();
+  const visibleDrafts = filterOwnedRecords(drafts, user);
 
   const remove = (id) => {
     setDrafts((items) => items.filter((item) => item.id !== id));
@@ -33,9 +37,9 @@ export default function DraftsPage() {
       <h1 className="mt-3 font-display text-4xl font-semibold md:text-5xl">Saved Drafts</h1>
       <p className="mt-3 max-w-2xl text-sm leading-6 text-archive-muted">Draft text, privacy choices and attachment names are stored only in this browser. Attachment bytes are not stored and must be selected again.</p>
 
-      {drafts.length ? (
+      {visibleDrafts.length ? (
         <div className="mt-8 space-y-4">
-          {drafts.map((draft) => (
+          {visibleDrafts.map((draft) => (
             <article key={draft.id} className="flex flex-col gap-5 rounded-2xl border border-white/[0.08] bg-white/[0.03] p-5 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex min-w-0 gap-4">
                 <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-archive-amber/20 bg-archive-amber/10 text-archive-amber"><FileClock className="h-5 w-5" /></span>

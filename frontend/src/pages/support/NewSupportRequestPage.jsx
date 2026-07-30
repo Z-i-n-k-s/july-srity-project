@@ -11,6 +11,7 @@ import useOnlineStatus from "../../hooks/useOnlineStatus";
 import { userApi } from "../../lib/api";
 import { STORAGE_KEYS, storage } from "../../lib/storage";
 import { makeId } from "../../lib/utils";
+import { filterOwnedRecords, isOwnedByUser, stampOwner } from "../../lib/ownership";
 
 const initial = { requesterName: "", relationship: "Self", category: "Medical Treatment", urgency: "Needs Attention", location: "", hospital: "", description: "", contact: "", consent: false };
 const MAX_FILES = 6;
@@ -31,9 +32,9 @@ export default function NewSupportRequestPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const draft = storage.get(STORAGE_KEYS.drafts, []).find((item) => item.kind === "support");
+    const draft = filterOwnedRecords(storage.get(STORAGE_KEYS.drafts, []), user).find((item) => item.kind === "support");
     if (draft?.values) setValues(draft.values);
-  }, []);
+  }, [user]);
 
   const previews = useMemo(() => files.map((file) => ({ file, url: file.type.startsWith("image/") ? URL.createObjectURL(file) : "" })), [files]);
   useEffect(() => () => previews.forEach((item) => item.url && URL.revokeObjectURL(item.url)), [previews]);
@@ -65,7 +66,8 @@ export default function NewSupportRequestPage() {
 
   const saveDraft = () => {
     const drafts = storage.get(STORAGE_KEYS.drafts, []);
-    storage.set(STORAGE_KEYS.drafts, [...drafts.filter((d) => d.kind !== "support"), { id: makeId("DRAFT"), kind: "support", values, fileNames: files.map((file) => file.name), savedAt: new Date().toISOString(), status: "Saved offline" }]);
+    const otherDrafts = drafts.filter((draft) => draft.kind !== "support" || !isOwnedByUser(draft, user));
+    storage.set(STORAGE_KEYS.drafts, [...otherDrafts, stampOwner({ id: makeId("DRAFT"), kind: "support", values, fileNames: files.map((file) => file.name), savedAt: new Date().toISOString(), status: "Saved offline" }, user)]);
     toast.success(pick("Support request draft saved on this device. Re-select files before sending.", "সহায়তা অনুরোধের খসড়া এই ডিভাইসে সংরক্ষিত হয়েছে। পাঠানোর আগে ফাইল আবার নির্বাচন করুন।"));
   };
 
@@ -81,7 +83,7 @@ export default function NewSupportRequestPage() {
       const response = await userApi.createSupportRequest(formData);
       const id = response?.data?.id || response?.id || `JS-HELP-${String(Math.floor(Math.random() * 90000) + 10000)}`;
       const rooms = storage.get(STORAGE_KEYS.supportRooms, []);
-      storage.set(STORAGE_KEYS.supportRooms, [{ id, title: values.category, status: "Under review", priority: values.urgency, updatedAt: "Just now", assignedAdmin: "Awaiting assignment", unread: 0 }, ...rooms]);
+      storage.set(STORAGE_KEYS.supportRooms, [stampOwner({ id, title: values.category, status: "Under review", priority: values.urgency, updatedAt: new Date().toISOString(), assignedAdmin: "Awaiting assignment", unread: 0, requester: user?.name || values.requesterName, requesterEmail: user?.email || "" }, user), ...rooms]);
       toast.success(pick(`Support request created: ${id}`, `সহায়তা অনুরোধ তৈরি হয়েছে: ${id}`));
       navigate(`/account/support-rooms/${id}`);
     } catch (error) { toast.error(error.message); } finally { setLoading(false); }

@@ -1,6 +1,6 @@
 import { ArrowUpRight, CalendarDays, MapPin } from "lucide-react";
 import { Link } from "react-router-dom";
-import { stories } from "../../data/landingData";
+import { heroStories } from "../../data/landingData";
 import ImageWithFallback from "../ui/ImageWithFallback";
 import SectionHeading from "../ui/SectionHeading";
 import Button from "../ui/Button";
@@ -8,8 +8,8 @@ import { useLanguage } from "../../context/LanguageContext";
 
 export default function StoriesSection() {
   const { pick } = useLanguage();
-  const featured = stories[0];
-  const supporting = stories.slice(1, 4);
+  const featured = heroStories[0];
+  const supporting = heroStories.slice(1, 4);
 
   return (
     <section className="section-pad border-y border-white/[0.06] bg-[#130E15]/65">

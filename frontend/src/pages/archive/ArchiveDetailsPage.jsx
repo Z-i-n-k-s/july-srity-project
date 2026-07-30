@@ -295,23 +295,20 @@ export default function ArchiveDetailsPage() {
   const [loading, setLoading] = useState(true);
   const { pick } = useLanguage();
 
-useEffect(() => {
-  let active = true;
+  useEffect(() => {
+    let active = true;
+    publicApi
+      .archiveDetail(id, fallback ? { data: fallback } : null)
+      .then((payload) => {
+        if (!active) return;
+        const data = unwrap(payload);
+        if (data && !Array.isArray(data)) setItem(data);
+      })
+      .catch(() => {})
+      .finally(() => active && setLoading(false));
+    return () => { active = false; };
+  }, [id]);
 
-  publicApi
-    .archiveDetail(id, fallback ? { data: fallback } : null)
-    .then((payload) => {
-      if (!active) return;
-      const data = unwrap(payload);
-      if (data && !Array.isArray(data)) setItem(data);
-    })
-    .catch(() => {})
-    .finally(() => active && setLoading(false));
-
-  return () => {
-    active = false;
-  };
-}, [id, fallback]);
   if (loading && !item)
     return (
       <div className="grid min-h-screen place-items-center">

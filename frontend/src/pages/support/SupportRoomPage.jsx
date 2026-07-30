@@ -23,11 +23,6 @@ import { Link, useParams } from "react-router-dom";
 import Button from "../../components/ui/Button";
 import StatusBadge from "../../components/ui/StatusBadge";
 
-import {
-  demoRoomMessages,
-  demoSupportRooms,
-} from "../../data/demoData";
-
 import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../context/ToastContext";
 import { useLanguage } from "../../context/LanguageContext";
@@ -45,6 +40,8 @@ import {
 } from "../../lib/storage";
 
 import { makeId } from "../../lib/utils";
+import { filterOwnedRecords, getRecordId, isOwnedByUser } from "../../lib/ownership";
+import { applySupportRoomOverride, isSupportRoomStopped, SUPPORT_ROOM_EVENT } from "../../lib/supportRoomState";
 
 const MAX_ATTACHMENT_SIZE =
   10 * 1024 * 1024;
@@ -411,47 +408,33 @@ export default function SupportRoomPage() {
   const createdObjectUrls =
     useRef([]);
 
+  const ownedSavedRooms = useMemo(() => {
+    const savedRooms = storage.get(STORAGE_KEYS.supportRooms, []);
+    return filterOwnedRecords(savedRooms, user);
+  }, [user]);
+
+  const ownedRoomIds = useMemo(
+    () => ownedSavedRooms.map(getRecordId).filter(Boolean),
+    [ownedSavedRooms],
+  );
+
   const fallbackRoom = useMemo(() => {
-    const savedRooms = storage.get(
-      STORAGE_KEYS.supportRooms,
-      []
-    );
+    const saved = ownedSavedRooms.find((item) => String(getRecordId(item)) === String(roomId));
+    return applySupportRoomOverride(saved || {
+      id: roomId,
+      title: pick("Loading private support room…", "ব্যক্তিগত সহায়তা কক্ষ লোড হচ্ছে…"),
+      status: "Under review",
+      priority: "Normal",
+      assignedAdmin: pick("Awaiting assignment", "দায়িত্ব দেওয়ার অপেক্ষায়"),
+      updatedAt: "",
+    });
+  }, [ownedSavedRooms, pick, roomId]);
 
-    return (
-      [
-        ...savedRooms,
-        ...demoSupportRooms,
-      ].find(
-        (item) =>
-          String(
-            item.id || item._id
-          ) === String(roomId)
-      ) || {
-        id: roomId,
-        title: "Support request",
-        status: "Under review",
-        priority: "Normal",
-        assignedAdmin:
-          "Awaiting assignment",
-        updatedAt: "Just now",
-      }
-    );
-  }, [roomId]);
-
-  const initialMessages =
-    useMemo(() => {
-      const savedMessages =
-        storage.get(
-          STORAGE_KEYS.roomMessages,
-          {}
-        );
-
-      return normaliseStoredMessages(
-        savedMessages[roomId] ||
-          demoRoomMessages[roomId] ||
-          []
-      );
-    }, [roomId]);
+  const initialMessages = useMemo(() => {
+    if (!ownedRoomIds.includes(String(roomId))) return [];
+    const savedMessages = storage.get(STORAGE_KEYS.roomMessages, {});
+    return normaliseStoredMessages(savedMessages[roomId] || []);
+  }, [ownedRoomIds, roomId]);
 
   const [room, setRoom] =
     useState(fallbackRoom);
@@ -469,6 +452,9 @@ export default function SupportRoomPage() {
     useState(false);
 
   const [refreshing, setRefreshing] =
+    useState(false);
+
+  const [accessDenied, setAccessDenied] =
     useState(false);
 
   const selectedPreviewUrl =
@@ -537,19 +523,21 @@ export default function SupportRoomPage() {
         const {
           room: remoteRoom,
           messages: remoteMessages,
-        } = extractRoomPayload(
-          payload
-        );
+        } = extractRoomPayload(payload);
+
+        if (remoteRoom && !isOwnedByUser(remoteRoom, user, ownedRoomIds)) {
+          setAccessDenied(true);
+          setMessages([]);
+          return;
+        }
+
+        setAccessDenied(false);
 
         if (remoteRoom) {
-          setRoom((current) => ({
+          setRoom((current) => applySupportRoomOverride({
             ...current,
             ...remoteRoom,
-
-            id:
-              remoteRoom.id ||
-              remoteRoom._id ||
-              current.id,
+            id: remoteRoom.id || remoteRoom._id || current.id,
           }));
         }
 
@@ -659,7 +647,17 @@ export default function SupportRoomPage() {
     // because some context providers recreate
     // their functions on every render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [roomId]);
+  }, [ownedRoomIds, roomId, user]);
+
+  useEffect(() => {
+    const applyOverride = () => setRoom((current) => applySupportRoomOverride(current));
+    window.addEventListener(SUPPORT_ROOM_EVENT, applyOverride);
+    window.addEventListener("storage", applyOverride);
+    return () => {
+      window.removeEventListener(SUPPORT_ROOM_EVENT, applyOverride);
+      window.removeEventListener("storage", applyOverride);
+    };
+  }, []);
 
   useEffect(() => {
     const target = endRef.current;
@@ -755,8 +753,12 @@ export default function SupportRoomPage() {
   const send = async (event) => {
     event.preventDefault();
 
-    const trimmedMessage =
-      message.trim();
+    if (isSupportRoomStopped(room)) {
+      toast.warning(pick("This room was stopped by an administrator.", "একজন অ্যাডমিন এই কক্ষটি বন্ধ করেছেন।"));
+      return;
+    }
+
+    const trimmedMessage = message.trim();
 
     if (
       !trimmedMessage &&
@@ -1128,6 +1130,19 @@ export default function SupportRoomPage() {
     );
   };
 
+  if (accessDenied) {
+    return (
+      <div className="rounded-3xl border border-archive-rose/25 bg-archive-rose/[0.07] p-8 text-center">
+        <LockKeyhole className="mx-auto h-10 w-10 text-archive-rose" />
+        <h1 className="mt-4 font-display text-4xl font-semibold">{pick("Private room access denied", "ব্যক্তিগত কক্ষে প্রবেশ নিষিদ্ধ")}</h1>
+        <p className="mx-auto mt-3 max-w-2xl text-sm leading-7 text-[#DAB8BE]">{pick("This support room does not belong to the signed-in account. Only the requester and authorised administrators may view its messages.", "এই সহায়তা কক্ষটি সাইন-ইন করা অ্যাকাউন্টের নয়। শুধু অনুরোধকারী ও অনুমোদিত অ্যাডমিন এর বার্তা দেখতে পারবেন।")}</p>
+        <Link to="/account/support-rooms" className="focus-ring mt-6 inline-flex rounded-xl bg-archive-rose px-4 py-3 text-sm font-semibold text-white">{pick("Return to my rooms", "আমার কক্ষে ফিরুন")}</Link>
+      </div>
+    );
+  }
+
+  const roomStopped = isSupportRoomStopped(room);
+
   return (
     <div>
       <div className="mb-5 flex items-center justify-between gap-4">
@@ -1291,10 +1306,19 @@ export default function SupportRoomPage() {
             <div ref={endRef} />
           </div>
 
+          {roomStopped ? (
+            <div className="border-t border-white/10 p-5">
+              <div className="rounded-2xl border border-archive-rose/25 bg-archive-rose/[0.07] p-5 text-center">
+                <LockKeyhole className="mx-auto h-7 w-7 text-archive-rose" />
+                <h3 className="mt-3 font-display text-2xl font-semibold">{pick("This support room was stopped by an administrator", "একজন অ্যাডমিন এই সহায়তা কক্ষটি বন্ধ করেছেন")}</h3>
+                <p className="mt-3 text-sm leading-7 text-[#DAB8BE]">{room.stoppedReason || room.stopReason || pick("You can read the previous conversation, but new messages cannot be sent.", "আপনি আগের কথোপকথন দেখতে পারবেন, তবে নতুন বার্তা পাঠাতে পারবেন না।")}</p>
+              </div>
+            </div>
+          ) : (
           <form
             ref={formRef}
             onSubmit={send}
-            className="border-t border-white/10 p-4"
+            className="sticky bottom-0 border-t border-white/10 bg-ink-900/95 p-4 backdrop-blur"
           >
             {attachment && (
               <div className="mb-3 overflow-hidden rounded-xl border border-white/10 bg-black/15">
@@ -1439,6 +1463,7 @@ export default function SupportRoomPage() {
               )}
             </p>
           </form>
+          )}
         </section>
 
         <aside className="space-y-5">

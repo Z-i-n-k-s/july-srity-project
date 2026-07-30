@@ -37,6 +37,9 @@
 - [ ] Possible sightings are stored separately and remain private.
 - [ ] Admin can request more information, approve safe public fields or reject a report.
 - [ ] Public image is a reviewed derivative.
+- [ ] Missing-person reports accept optional `lastSeenLatitude` and `lastSeenLongitude` fields from the map picker.
+- [ ] Sighting reports accept optional `latitude` and `longitude` fields and return them to authorised admin detail views.
+- [ ] Coordinate fields are validated as finite latitude/longitude values and are excluded from public responses unless publication is explicitly approved.
 
 ## Response shape
 

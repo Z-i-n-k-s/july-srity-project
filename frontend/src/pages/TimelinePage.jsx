@@ -81,21 +81,6 @@ export default function TimelinePage() {
     });
   }, [query, region, activeTags]);
 
-  // Group consecutive same-date entries so multi-region days read as one
-  // block with a shared date marker, rather than repeating the date.
-  const grouped = useMemo(() => {
-    const groups = [];
-    for (const event of filtered) {
-      const last = groups[groups.length - 1];
-      if (last && last.date === event.date && last.year === event.year) {
-        last.items.push(event);
-      } else {
-        groups.push({ date: event.date, year: event.year, items: [event] });
-      }
-    }
-    return groups;
-  }, [filtered]);
-
   const regionCounts = useMemo(() => {
     const counts = {};
     for (const r of REGIONS) counts[r.id] = 0;
@@ -190,116 +175,93 @@ export default function TimelinePage() {
             )}
           </p>
 
-          {/* Timeline */}
-          <div className="relative mt-6 max-w-4xl">
-            <div className="absolute bottom-0 left-[17px] top-0 w-px bg-gradient-to-b from-archive-amber via-white/15 to-transparent" />
+          {/* Alternating timeline */}
+          <div className="relative mt-10">
+            <div className="absolute bottom-0 left-5 top-0 w-px bg-gradient-to-b from-archive-amber via-white/15 to-transparent md:left-1/2 md:-translate-x-1/2" />
 
             <div className="space-y-10">
-              {grouped.map((group) => (
-                <div key={`${group.date}-${group.year}`} className="relative">
-                  <div className="sticky top-4 z-10 mb-4 flex items-center gap-3 pl-0">
-                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-archive-amber/30 bg-ink-950 text-archive-amber">
-                      <CalendarDays className="h-4 w-4" />
-                    </span>
-                    <p className="font-display text-xl font-semibold text-archive-amber">
-                      {group.date} {group.year}
-                    </p>
-                    {group.items.length > 1 && (
-                      <span className="badge border-white/10 bg-white/[0.03] text-archive-muted">
-                        {pick(
-                          `${group.items.length} locations`,
-                          `${group.items.length}টি স্থান`
-                        )}
-                      </span>
-                    )}
-                  </div>
+              {filtered.map((event, index) => {
+                const regionMeta = REGIONS.find((item) => item.id === event.region);
+                const placeLeft = index % 2 === 0;
 
-                  <div className="space-y-4 pl-12">
-                    {group.items.map((event) => {
-                      const regionMeta = REGIONS.find(
-                        (r) => r.id === event.region
-                      );
-                      return (
-                        <article
-                          key={event.id}
-                          className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-6"
-                        >
-                          <div className="flex flex-wrap items-start justify-between gap-3">
-                            <div>
-                              <h2 className="font-display text-2xl font-semibold leading-snug">
-                                {pick(event.title, event.titleBn)}
-                              </h2>
-                              <span className="mt-2 inline-flex items-center gap-2 text-sm text-archive-muted">
-                                <MapPin className="h-3.5 w-3.5" />
-                                {pick(event.location, event.locationBn)}
-                                {regionMeta && regionMeta.id !== "national" && (
-                                  <span className="badge border-archive-teal/25 bg-archive-teal/10 text-[#BCE4DC]">
-                                    {lang === "bn" ? regionMeta.bn : regionMeta.en}
-                                  </span>
-                                )}
-                              </span>
+                return (
+                  <article
+                    key={event.id}
+                    className="relative grid gap-5 pl-14 md:grid-cols-2 md:gap-14 md:pl-0"
+                  >
+                    <span className="absolute left-5 top-7 z-10 h-4 w-4 -translate-x-1/2 rounded-full border-4 border-ink-950 bg-archive-amber shadow-[0_0_0_4px_rgba(210,163,86,.16)] md:left-1/2" />
+
+                    <div className={placeLeft ? "md:col-start-1 md:pr-1" : "md:col-start-2 md:pl-1"}>
+                      <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-5 transition hover:-translate-y-0.5 hover:border-archive-amber/25 sm:p-6">
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div>
+                            <div className="inline-flex items-center gap-2 rounded-full border border-archive-amber/20 bg-archive-amber/[0.07] px-3 py-1 text-xs font-semibold text-archive-amber">
+                              <CalendarDays className="h-3.5 w-3.5" />
+                              {event.date} {event.year}
                             </div>
-                            {event.tags.includes("death") && (
-                              <span className="badge border-red-400/30 bg-red-400/10 text-red-200">
-                                <ShieldAlert className="h-3.5 w-3.5" />
-                                {pick("Reported deaths", "মৃত্যুর খবর")}
-                              </span>
-                            )}
+                            <h2 className="mt-4 font-display text-2xl font-semibold leading-snug">
+                              {pick(event.title, event.titleBn)}
+                            </h2>
+                            <span className="mt-2 inline-flex flex-wrap items-center gap-2 text-sm text-archive-muted">
+                              <MapPin className="h-3.5 w-3.5" />
+                              {pick(event.location, event.locationBn)}
+                              {regionMeta && regionMeta.id !== "national" && (
+                                <span className="badge border-archive-teal/25 bg-archive-teal/10 text-[#BCE4DC]">
+                                  {lang === "bn" ? regionMeta.bn : regionMeta.en}
+                                </span>
+                              )}
+                            </span>
                           </div>
 
-                          <p className="mt-4 leading-7 text-[#C6C2BC]">
-                            {pick(event.summary, event.summaryBn)}
-                          </p>
-
-                          <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.06] pt-4">
-                            <div className="flex flex-wrap gap-1.5">
-                              {event.tags.map((tagId) => {
-                                const meta = TAGS.find((t) => t.id === tagId);
-                                if (!meta) return null;
-                                return (
-                                  <span
-                                    key={tagId}
-                                    className="rounded-full border border-white/10 bg-white/[0.02] px-2.5 py-0.5 text-[11px] text-archive-muted"
-                                  >
-                                    {lang === "bn" ? meta.bn : meta.en}
-                                  </span>
-                                );
-                              })}
-                            </div>
-
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setExpandedSource(
-                                  expandedSource === event.id ? null : event.id
-                                )
-                              }
-                              className="inline-flex items-center gap-1.5 text-xs font-medium text-archive-muted hover:text-archive-amber"
-                            >
-                              <BookOpen className="h-3.5 w-3.5" />
-                              {pick("Source", "সূত্র")}
-                            </button>
-                          </div>
-
-                          {expandedSource === event.id && (
-                            <p className="mt-3 rounded-lg border border-white/[0.06] bg-black/20 px-4 py-3 text-xs leading-relaxed text-archive-muted">
-                              {pick("Source: ", "সূত্র: ")}
-                              {event.source}
-                            </p>
+                          {event.tags.includes("death") && (
+                            <span className="badge border-red-400/30 bg-red-400/10 text-red-200">
+                              <ShieldAlert className="h-3.5 w-3.5" />
+                              {pick("Reported deaths", "মৃত্যুর খবর")}
+                            </span>
                           )}
-                        </article>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
+                        </div>
 
-              {grouped.length === 0 && (
-                <div className="rounded-2xl border border-dashed border-white/10 py-16 text-center text-archive-muted">
-                  {pick(
-                    "No entries match this search or filter combination.",
-                    "এই অনুসন্ধান বা ফিল্টারের সাথে মিলে এমন কোনো এন্ট্রি নেই।"
-                  )}
+                        <p className="mt-4 leading-7 text-[#C6C2BC]">
+                          {pick(event.summary, event.summaryBn)}
+                        </p>
+
+                        <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.06] pt-4">
+                          <div className="flex flex-wrap gap-1.5">
+                            {event.tags.map((tagId) => {
+                              const meta = TAGS.find((item) => item.id === tagId);
+                              if (!meta) return null;
+                              return (
+                                <span key={tagId} className="rounded-full border border-white/10 bg-white/[0.02] px-2.5 py-0.5 text-[11px] text-archive-muted">
+                                  {lang === "bn" ? meta.bn : meta.en}
+                                </span>
+                              );
+                            })}
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => setExpandedSource(expandedSource === event.id ? null : event.id)}
+                            className="inline-flex items-center gap-1.5 text-xs font-medium text-archive-muted hover:text-archive-amber"
+                          >
+                            <BookOpen className="h-3.5 w-3.5" />
+                            {pick("Source", "সূত্র")}
+                          </button>
+                        </div>
+
+                        {expandedSource === event.id && (
+                          <p className="mt-3 rounded-lg border border-white/[0.06] bg-black/20 px-4 py-3 text-xs leading-relaxed text-archive-muted">
+                            {pick("Source: ", "সূত্র: ")}{event.source}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
+
+              {!filtered.length && (
+                <div className="ml-14 rounded-2xl border border-dashed border-white/10 py-16 text-center text-archive-muted md:ml-0">
+                  {pick("No entries match this search or filter combination.", "এই অনুসন্ধান বা ফিল্টারের সাথে মিলে এমন কোনো এন্ট্রি নেই।")}
                 </div>
               )}
             </div>
