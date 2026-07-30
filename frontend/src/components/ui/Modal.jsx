@@ -48,7 +48,7 @@ export default function Modal({ open, onClose, title, description, children, siz
                 <h2 id="modal-title" className="font-display text-2xl font-semibold text-archive-paper">{title}</h2>
                 {description && <p className="mt-1 text-sm leading-6 text-archive-muted">{description}</p>}
               </div>
-              <button onClick={onClose} className="focus-ring rounded-lg p-2 text-archive-muted hover:bg-white/5 hover:text-white" aria-label="Close dialog">
+              <button type="button" onClick={onClose} className="focus-ring rounded-lg p-2 text-archive-muted hover:bg-white/5 hover:text-white" aria-label="Close dialog">
                 <X className="h-5 w-5" />
               </button>
             </div>

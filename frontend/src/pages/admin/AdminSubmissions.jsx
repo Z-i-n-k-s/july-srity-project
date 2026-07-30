@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, CheckCircle2, Eye, FileCheck2, Filter, LockKeyhole, Search, Send, ShieldCheck, XCircle } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Eye, FileCheck2, Filter, LockKeyhole, Search, Send, ShieldCheck, X, XCircle } from "lucide-react";
 import { adminApi, unwrap } from "../../lib/api";
 import { adminSubmissionsFallback } from "../../data/adminData";
 import AdminFilePreview from "../../components/admin/AdminFilePreview";
@@ -90,7 +90,7 @@ export default function AdminSubmissions() {
         <div className="fixed inset-0 z-[120] flex items-center justify-center p-3 sm:p-5" role="dialog" aria-modal="true" aria-labelledby="submission-review-title">
           <button className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setSelected(null)} aria-label="Close review" />
           <div className="relative max-h-[94vh] w-full max-w-7xl overflow-hidden rounded-2xl border border-white/10 bg-ink-800 shadow-2xl">
-            <div className="flex items-start justify-between gap-4 border-b border-white/10 px-5 py-4 sm:px-7"><div><p className="eyebrow">{selected.id}</p><h2 id="submission-review-title" className="mt-2 font-display text-3xl font-semibold sm:text-4xl">{selected.title}</h2><div className="mt-3 flex flex-wrap items-center gap-2"><StatusBadge status={selected.status} /><span className="rounded-full border border-archive-rose/20 bg-archive-rose/[0.08] px-2.5 py-1 text-xs text-[#E2BEC5]">{selected.risk}</span></div></div><button onClick={() => setSelected(null)} className="focus-ring grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-white/10" aria-label="Close"><XCircle className="h-5 w-5" /></button></div>
+            <div className="flex items-start justify-between gap-4 border-b border-white/10 px-5 py-4 sm:px-7"><div><p className="eyebrow">{selected.id}</p><h2 id="submission-review-title" className="mt-2 font-display text-3xl font-semibold sm:text-4xl">{selected.title}</h2><div className="mt-3 flex flex-wrap items-center gap-2"><StatusBadge status={selected.status} /><span className="rounded-full border border-archive-rose/20 bg-archive-rose/[0.08] px-2.5 py-1 text-xs text-[#E2BEC5]">{selected.risk}</span></div></div><button type="button" onClick={() => setSelected(null)} className="focus-ring grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-white/10 text-archive-muted transition hover:text-white" aria-label="Close review"><X className="h-5 w-5" /></button></div>
             <div className="max-h-[calc(94vh-104px)] overflow-y-auto">
               <div className="grid gap-7 p-5 sm:p-7 xl:grid-cols-[1fr_390px]">
                 <div className="space-y-6">

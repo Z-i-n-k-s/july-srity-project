@@ -1,3 +1,8 @@
+import abuSayedMemorial from "../assets/stories/heroes/abu-sayed.svg";
+import mirMugdhoMemorial from "../assets/stories/heroes/mir-mugdho.svg";
+import wasimAkramMemorial from "../assets/stories/heroes/wasim-akram.svg";
+import tahirPriyoMemorial from "../assets/stories/heroes/tahir-priyo.svg";
+
 import {
   Archive,
   Camera,
@@ -65,9 +70,70 @@ export const timelineEvents = [
 ];
 
 export const stories = [
-  { id: "story-001", name: "Identity protected", quote: "We kept writing down what we saw because we were afraid the details would disappear.", location: "Dhaka", category: "First-hand testimony", image: "/images/stories/story-01.svg", featured: true, body: "This demonstration story shows how a privacy-protected account can be presented. The full production archive should include only reviewed material with explicit consent." },
-  { id: "story-002", name: "A family from Mirpur", quote: "Reliable information mattered as much as immediate help.", location: "Mirpur", category: "Family account", image: "/images/stories/story-02.svg", body: "A demo family account describing the need for verified communication, respectful support and protected contact details." },
-  { id: "story-003", name: "Community volunteer", quote: "People organised quietly, one task and one person at a time.", location: "Dhaka", category: "Volunteer memory", image: "/images/stories/story-03.svg", body: "A demo story about community coordination. It avoids identifying private individuals or publishing sensitive claims." },
+  {
+    id: "story-abu-sayed",
+    name: "Abu Sayed",
+    title: "A student whose courage became a national turning point",
+    summary: "An English student and protest coordinator at Begum Rokeya University, Abu Sayed was killed in Rangpur on 16 July 2024. The image of him standing with his arms open became one of the most enduring symbols of the uprising.",
+    body: "Abu Sayed came from Babanpur village in Pirganj, Rangpur, and studied English at Begum Rokeya University. He helped organise the anti-discrimination student movement on his campus and remained at the front of the demonstration on 16 July. His death intensified public grief and mobilisation across Bangladesh. This static memorial profile honours his courage while avoiding graphic details.",
+    legacy: "Remembered for fearless civic courage and for inspiring students across the country.",
+    date: "16 July 2024",
+    location: "Rangpur",
+    category: "Student organiser",
+    image: abuSayedMemorial,
+    imageAlt: "Memorial illustration honouring Abu Sayed; not a photographic portrait",
+    featured: true,
+  },
+  {
+    id: "story-mir-mugdho",
+    name: "Mir Mahfuzur Rahman Mugdho",
+    title: "Humanity remembered through a bottle of water",
+    summary: "Mir Mugdho was helping protesters with water and biscuits in Uttara when he was killed on 18 July 2024. His simple act of care became a lasting symbol of compassion during the movement.",
+    body: "Mugdho was a student, freelancer and volunteer known by friends and teachers for his energy and willingness to help others. During the demonstration in Uttara, he moved among protesters offering water and food. He was killed later that day. His memory continues through public acts of service that use water as a symbol of solidarity.",
+    legacy: "Remembered for compassion, service and the belief that courage can look like caring for others.",
+    date: "18 July 2024",
+    location: "Uttara, Dhaka",
+    category: "Volunteer and student",
+    image: mirMugdhoMemorial,
+    imageAlt: "Memorial illustration honouring Mir Mugdho; not a photographic portrait",
+  },
+  {
+    id: "story-wasim-akram",
+    name: "Wasim Akram",
+    title: "A young student remembered across Chattogram",
+    summary: "Wasim Akram, a student of Chattogram College, was killed during the protests in the Muradpur area on 16 July 2024. His death brought grief and renewed mobilisation across the city.",
+    body: "Wasim studied at Chattogram College and was among the students taking part in the quota-reform protest. Accounts from his family and community remember a young man with hopes for education and a future of service. He was killed during the violence in Muradpur on 16 July. This profile preserves the essential public record without reproducing disputed or graphic details.",
+    legacy: "Remembered as one of the first martyrs of the July movement in Chattogram.",
+    date: "16 July 2024",
+    location: "Chattogram",
+    category: "Student",
+    image: wasimAkramMemorial,
+    imageAlt: "Memorial illustration honouring Wasim Akram; not a photographic portrait",
+  },
+  {
+    id: "story-tahir-priyo",
+    name: "Tahir Zaman Priyo",
+    title: "A journalist who stayed close to the truth",
+    summary: "Tahir Zaman Priyo was a journalist and videographer covering the protests in Dhaka. He was killed on 19 July 2024 while documenting events near the Science Lab area.",
+    body: "Priyo worked with images and video, using documentation to help the public understand events as they unfolded. On 19 July, he was covering the protests around Science Lab and Central Road when he was killed. His story represents the risks taken by journalists and citizen documentarians who preserved evidence during a dangerous period.",
+    legacy: "Remembered for bearing witness and for the public value of responsible documentation.",
+    date: "19 July 2024",
+    location: "Dhaka",
+    category: "Journalist and videographer",
+    image: tahirPriyoMemorial,
+    imageAlt: "Memorial illustration honouring Tahir Zaman Priyo; not a photographic portrait",
+  },
+  {
+    id: "story-anonymous-volunteer",
+    anonymous: true,
+    title: "Courage without a public identity",
+    summary: "Some people helped the injured, carried water, shared verified information and guided strangers to safety while choosing not to reveal their identities.",
+    body: "This identity-protected memorial represents the many people whose contributions are part of the public memory but whose names and images should not be exposed. Their privacy is not an absence from history. It is a boundary the archive must respect while preserving the meaning of what they did.",
+    legacy: "Remembered anonymously for quiet service, solidarity and care.",
+    date: "July 2024",
+    location: "Location withheld",
+    category: "Identity-protected account",
+  },
 ];
 
 export const supportBenefits = [

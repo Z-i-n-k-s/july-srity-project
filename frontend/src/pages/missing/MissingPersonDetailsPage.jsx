@@ -21,7 +21,7 @@ import { useToast } from "../../context/ToastContext";
 import { useLanguage } from "../../context/LanguageContext";
 import { publicApi, unwrap, userApi } from "../../lib/api";
 import { STORAGE_KEYS, storage } from "../../lib/storage";
-import { makeId } from "../../lib/utils";
+import { isFutureLocalDateTime, makeId, toLocalDateInputValue } from "../../lib/utils";
 
 const initialSighting = {
   date: "",
@@ -220,6 +220,8 @@ export default function MissingPersonDetailsPage() {
   const { isAuthenticated } = useAuth();
   const toast = useToast();
   const { pick } = useLanguage();
+  const maxSightingDate = toLocalDateInputValue();
+  const maxSightingTime = values.date === maxSightingDate ? new Date().toTimeString().slice(0, 5) : undefined;
 
   useEffect(() => {
     let active = true;
@@ -322,6 +324,11 @@ export default function MissingPersonDetailsPage() {
       nextErrors.date = pick(
         "Select the sighting date.",
         "দেখার তারিখ নির্বাচন করুন।",
+      );
+    } else if (isFutureLocalDateTime(values.date, values.time)) {
+      nextErrors.date = pick(
+        "The sighting date and time cannot be in the future.",
+        "দেখার তারিখ ও সময় ভবিষ্যতের হতে পারবে না।",
       );
     }
 
@@ -739,11 +746,7 @@ export default function MissingPersonDetailsPage() {
                   type="date"
                   className="field-control"
                   value={values.date}
-                  max={
-                    new Date()
-                      .toISOString()
-                      .split("T")[0]
-                  }
+                  max={maxSightingDate}
                   onChange={(event) =>
                     updateSightingValue(
                       "date",
@@ -765,6 +768,7 @@ export default function MissingPersonDetailsPage() {
                   type="time"
                   className="field-control"
                   value={values.time}
+                  max={maxSightingTime}
                   onChange={(event) =>
                     updateSightingValue(
                       "time",

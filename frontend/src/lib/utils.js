@@ -11,6 +11,21 @@ export const formatDate = (value) => {
   }).format(date);
 };
 
+export const toLocalDateInputValue = (date = new Date()) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+export const isFutureLocalDateTime = (dateValue, timeValue = "") => {
+  if (!dateValue) return false;
+  const [year, month, day] = dateValue.split("-").map(Number);
+  const [hours = 0, minutes = 0] = timeValue ? timeValue.split(":").map(Number) : [0, 0];
+  const candidate = new Date(year, month - 1, day, hours, minutes, 0, 0);
+  return !Number.isNaN(candidate.getTime()) && candidate.getTime() > Date.now();
+};
+
 export const makeId = (prefix = "JS") => {
   const time = Date.now().toString(36).toUpperCase();
   const random = Math.random().toString(36).slice(2, 6).toUpperCase();

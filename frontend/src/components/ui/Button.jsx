@@ -44,7 +44,7 @@ const Button = forwardRef(function Button({
 
   if (to) return <Link ref={ref} to={to} className={classes} {...props}>{content}</Link>;
   if (href) return <a ref={ref} href={href} className={classes} {...props}>{content}</a>;
-  return <button ref={ref} className={classes} disabled={disabled || loading} {...props}>{content}</button>;
+  return <button ref={ref} className={classes} disabled={disabled || loading} aria-busy={loading || undefined} {...props}>{content}</button>;
 });
 
 export default Button;

@@ -1,35 +1,324 @@
-import { useEffect, useMemo, useState } from "react";
-import { CalendarDays, CheckCircle2, Images, MapPin, Search } from "lucide-react";
+import { useMemo, useState } from "react";
+import {
+  CalendarDays,
+  MapPin,
+  Search,
+  ShieldAlert,
+  BookOpen,
+  X,
+} from "lucide-react";
 import PageHeader from "../components/ui/PageHeader";
-import { timelineEvents as fallbackEvents } from "../data/landingData";
-import { publicApi, unwrap } from "../lib/api";
+import {
+  timelineEvents,
+  REGIONS,
+  TAGS,
+} from "../data/julyTimelineData";
 import { useLanguage } from "../context/LanguageContext";
 
-export default function TimelinePage() {
-  const [records, setRecords] = useState(fallbackEvents);
-  const [query, setQuery] = useState("");
-  const { pick } = useLanguage();
+/**
+ * TimelinePage — fully static, source-attributed chronology of the
+ * July 2024 movement. No backend dependency: `timelineEvents` in
+ * data/julyTimelineData.js is the single source of truth and is meant
+ * to be maintained by hand (add/edit entries there, not here).
+ *
+ * Design intent: this reads like a maintained archive record, not a
+ * live feed — every entry carries a location, a source line, and a
+ * category chip, and the page groups entries by date so the sequence
+ * of a single day (often across several districts) stays legible.
+ */
 
-  useEffect(() => {
-    let active = true;
-    publicApi.timeline(fallbackEvents).then((payload) => {
-      if (!active) return;
-      const data = unwrap(payload);
-      if (Array.isArray(data)) setRecords(data);
+function TagChip({ tag, active, onClick, lang }) {
+  const meta = TAGS.find((t) => t.id === tag);
+  if (!meta) return null;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={[
+        "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+        active
+          ? "border-archive-amber/50 bg-archive-amber/15 text-archive-amber"
+          : "border-white/10 bg-white/[0.02] text-archive-muted hover:border-white/20 hover:text-[#C6C2BC]",
+      ].join(" ")}
+    >
+      {lang === "bn" ? meta.bn : meta.en}
+    </button>
+  );
+}
+
+export default function TimelinePage() {
+  const { pick, lang } = useLanguage();
+  const [query, setQuery] = useState("");
+  const [region, setRegion] = useState("all");
+  const [activeTags, setActiveTags] = useState([]);
+  const [expandedSource, setExpandedSource] = useState(null);
+
+  function toggleTag(tagId) {
+    setActiveTags((prev) =>
+      prev.includes(tagId) ? prev.filter((t) => t !== tagId) : [...prev, tagId]
+    );
+  }
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return timelineEvents.filter((event) => {
+      if (region !== "all" && event.region !== region) return false;
+      if (activeTags.length && !activeTags.some((t) => event.tags.includes(t)))
+        return false;
+      if (!q) return true;
+      const haystack = [
+        event.title,
+        event.titleBn,
+        event.location,
+        event.locationBn,
+        event.summary,
+        event.summaryBn,
+      ]
+        .join(" ")
+        .toLowerCase();
+      return haystack.includes(q);
     });
-    return () => { active = false; };
+  }, [query, region, activeTags]);
+
+  // Group consecutive same-date entries so multi-region days read as one
+  // block with a shared date marker, rather than repeating the date.
+  const grouped = useMemo(() => {
+    const groups = [];
+    for (const event of filtered) {
+      const last = groups[groups.length - 1];
+      if (last && last.date === event.date && last.year === event.year) {
+        last.items.push(event);
+      } else {
+        groups.push({ date: event.date, year: event.year, items: [event] });
+      }
+    }
+    return groups;
+  }, [filtered]);
+
+  const regionCounts = useMemo(() => {
+    const counts = {};
+    for (const r of REGIONS) counts[r.id] = 0;
+    for (const e of timelineEvents) {
+      counts.all += 1;
+      counts[e.region] = (counts[e.region] || 0) + 1;
+    }
+    return counts;
   }, []);
 
-  const filtered = useMemo(() => records.filter((event) => `${event.title || ""} ${event.location || ""} ${event.summary || ""}`.toLowerCase().includes(query.toLowerCase())), [records, query]);
   return (
     <>
-      <PageHeader label={pick("Verified chronology", "যাচাইকৃত কালপঞ্জি")} title={pick("The July Timeline", "জুলাই টাইমলাইন")} description={pick("Browse selected events in order and connect each entry to reviewed documentary material.", "নির্বাচিত ঘটনাগুলো ধারাবাহিকভাবে দেখুন এবং প্রতিটি এন্ট্রির সাথে পর্যালোচিত নথির সংযোগ দেখুন।")} />
-      <section className="section-pad"><div className="page-shell">
-        <label className="relative block max-w-xl"><span className="sr-only">Search timeline</span><Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-archive-muted" /><input value={query} onChange={(e) => setQuery(e.target.value)} className="field-control pl-12" placeholder={pick("Search events or locations", "ঘটনা বা স্থান খুঁজুন")} /></label>
-        <div className="relative mt-10 max-w-4xl"><div className="absolute bottom-0 left-[17px] top-0 w-px bg-gradient-to-b from-archive-amber via-white/15 to-transparent" />
-          <div className="space-y-6">{filtered.map((event) => <article key={event.id || event._id} className="relative pl-12"><span className="absolute left-0 top-6 grid h-9 w-9 place-items-center rounded-full border border-archive-amber/30 bg-ink-950 text-archive-amber"><CalendarDays className="h-4 w-4" /></span><div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-6"><div className="flex flex-wrap items-center justify-between gap-3"><div><p className="font-bold text-archive-amber">{event.date} {event.year}</p><h2 className="mt-2 font-display text-3xl font-semibold">{event.title}</h2></div><span className="badge border-archive-teal/30 bg-archive-teal/10 text-[#BCE4DC]"><CheckCircle2 className="h-3.5 w-3.5" />{pick("Verified", "যাচাইকৃত")}</span></div><p className="mt-4 leading-7 text-[#C6C2BC]">{event.summary}</p><div className="mt-5 flex flex-wrap gap-4 text-sm text-archive-muted"><span className="inline-flex items-center gap-2"><MapPin className="h-4 w-4" />{event.location}</span><span className="inline-flex items-center gap-2"><Images className="h-4 w-4" />{event.mediaCount || event.recordCount || 0} {pick("records", "রেকর্ড")}</span></div></div></article>)}</div>
+      <PageHeader
+        label={pick("Verified chronology · 1 July – 5 August 2024", "যাচাইকৃত কালপঞ্জি · ১ জুলাই – ৫ আগস্ট, ২০২৪")}
+        title={pick("The July Timeline", "জুলাই টাইমলাইন")}
+        description={pick(
+          "A day-by-day record of the 2024 movement across Bangladesh — Dhaka and beyond it, in Rangpur, Chattogram, Sylhet, Narayanganj, and other districts. Every entry is attributed to public reporting; where sources disagree on a figure, that is noted rather than resolved for you.",
+          "২০২৪ সালের আন্দোলনের দিনভিত্তিক লিপিবদ্ধ ইতিহাস, শুধু ঢাকা নয় — রংপুর, চট্টগ্রাম, সিলেট, নারায়ণগঞ্জসহ দেশের বিভিন্ন জেলা জুড়ে। প্রতিটি তথ্য প্রকাশিত সংবাদ প্রতিবেদনের সূত্র উল্লেখসহ দেওয়া হয়েছে; কোনো সংখ্যা নিয়ে সূত্রগুলোর মধ্যে অমিল থাকলে তা গোপন না করে উল্লেখ করা হয়েছে।"
+        )}
+      />
+
+      <section className="section-pad">
+        <div className="page-shell">
+          {/* Controls */}
+          <div className="flex flex-col gap-5 rounded-2xl border border-white/[0.08] bg-white/[0.02] p-5">
+            <label className="relative block">
+              <span className="sr-only">
+                {pick("Search timeline", "টাইমলাইন খুঁজুন")}
+              </span>
+              <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-archive-muted" />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                className="field-control pl-12"
+                placeholder={pick(
+                  "Search events, districts, or names",
+                  "ঘটনা, জেলা বা নাম খুঁজুন"
+                )}
+              />
+            </label>
+
+            <div className="flex flex-wrap gap-2">
+              {REGIONS.map((r) => (
+                <button
+                  key={r.id}
+                  type="button"
+                  onClick={() => setRegion(r.id)}
+                  aria-pressed={region === r.id}
+                  className={[
+                    "rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors",
+                    region === r.id
+                      ? "border-archive-teal/50 bg-archive-teal/15 text-[#BCE4DC]"
+                      : "border-white/10 bg-transparent text-archive-muted hover:border-white/20 hover:text-[#C6C2BC]",
+                  ].join(" ")}
+                >
+                  {lang === "bn" ? r.bn : r.en}
+                  <span className="ml-1.5 opacity-60">
+                    {regionCounts[r.id] || 0}
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            <div className="flex flex-wrap gap-2 border-t border-white/[0.06] pt-4">
+              {TAGS.map((t) => (
+                <TagChip
+                  key={t.id}
+                  tag={t.id}
+                  lang={lang}
+                  active={activeTags.includes(t.id)}
+                  onClick={() => toggleTag(t.id)}
+                />
+              ))}
+              {activeTags.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setActiveTags([])}
+                  className="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium text-archive-muted underline decoration-dotted underline-offset-4 hover:text-[#C6C2BC]"
+                >
+                  <X className="h-3 w-3" />
+                  {pick("Clear filters", "ফিল্টার মুছুন")}
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Result count */}
+          <p className="mt-6 text-sm text-archive-muted">
+            {pick(
+              `Showing ${filtered.length} of ${timelineEvents.length} entries`,
+              `${timelineEvents.length}টির মধ্যে ${filtered.length}টি এন্ট্রি দেখানো হচ্ছে`
+            )}
+          </p>
+
+          {/* Timeline */}
+          <div className="relative mt-6 max-w-4xl">
+            <div className="absolute bottom-0 left-[17px] top-0 w-px bg-gradient-to-b from-archive-amber via-white/15 to-transparent" />
+
+            <div className="space-y-10">
+              {grouped.map((group) => (
+                <div key={`${group.date}-${group.year}`} className="relative">
+                  <div className="sticky top-4 z-10 mb-4 flex items-center gap-3 pl-0">
+                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-archive-amber/30 bg-ink-950 text-archive-amber">
+                      <CalendarDays className="h-4 w-4" />
+                    </span>
+                    <p className="font-display text-xl font-semibold text-archive-amber">
+                      {group.date} {group.year}
+                    </p>
+                    {group.items.length > 1 && (
+                      <span className="badge border-white/10 bg-white/[0.03] text-archive-muted">
+                        {pick(
+                          `${group.items.length} locations`,
+                          `${group.items.length}টি স্থান`
+                        )}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="space-y-4 pl-12">
+                    {group.items.map((event) => {
+                      const regionMeta = REGIONS.find(
+                        (r) => r.id === event.region
+                      );
+                      return (
+                        <article
+                          key={event.id}
+                          className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-6"
+                        >
+                          <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div>
+                              <h2 className="font-display text-2xl font-semibold leading-snug">
+                                {pick(event.title, event.titleBn)}
+                              </h2>
+                              <span className="mt-2 inline-flex items-center gap-2 text-sm text-archive-muted">
+                                <MapPin className="h-3.5 w-3.5" />
+                                {pick(event.location, event.locationBn)}
+                                {regionMeta && regionMeta.id !== "national" && (
+                                  <span className="badge border-archive-teal/25 bg-archive-teal/10 text-[#BCE4DC]">
+                                    {lang === "bn" ? regionMeta.bn : regionMeta.en}
+                                  </span>
+                                )}
+                              </span>
+                            </div>
+                            {event.tags.includes("death") && (
+                              <span className="badge border-red-400/30 bg-red-400/10 text-red-200">
+                                <ShieldAlert className="h-3.5 w-3.5" />
+                                {pick("Reported deaths", "মৃত্যুর খবর")}
+                              </span>
+                            )}
+                          </div>
+
+                          <p className="mt-4 leading-7 text-[#C6C2BC]">
+                            {pick(event.summary, event.summaryBn)}
+                          </p>
+
+                          <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.06] pt-4">
+                            <div className="flex flex-wrap gap-1.5">
+                              {event.tags.map((tagId) => {
+                                const meta = TAGS.find((t) => t.id === tagId);
+                                if (!meta) return null;
+                                return (
+                                  <span
+                                    key={tagId}
+                                    className="rounded-full border border-white/10 bg-white/[0.02] px-2.5 py-0.5 text-[11px] text-archive-muted"
+                                  >
+                                    {lang === "bn" ? meta.bn : meta.en}
+                                  </span>
+                                );
+                              })}
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setExpandedSource(
+                                  expandedSource === event.id ? null : event.id
+                                )
+                              }
+                              className="inline-flex items-center gap-1.5 text-xs font-medium text-archive-muted hover:text-archive-amber"
+                            >
+                              <BookOpen className="h-3.5 w-3.5" />
+                              {pick("Source", "সূত্র")}
+                            </button>
+                          </div>
+
+                          {expandedSource === event.id && (
+                            <p className="mt-3 rounded-lg border border-white/[0.06] bg-black/20 px-4 py-3 text-xs leading-relaxed text-archive-muted">
+                              {pick("Source: ", "সূত্র: ")}
+                              {event.source}
+                            </p>
+                          )}
+                        </article>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+
+              {grouped.length === 0 && (
+                <div className="rounded-2xl border border-dashed border-white/10 py-16 text-center text-archive-muted">
+                  {pick(
+                    "No entries match this search or filter combination.",
+                    "এই অনুসন্ধান বা ফিল্টারের সাথে মিলে এমন কোনো এন্ট্রি নেই।"
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Methodology footnote */}
+          <div className="mt-14 max-w-4xl rounded-2xl border border-white/[0.08] bg-white/[0.02] p-6 text-sm leading-6 text-archive-muted">
+            <p className="font-semibold text-[#C6C2BC]">
+              {pick("A note on sourcing", "সূত্র সম্পর্কে একটি নোট")}
+            </p>
+            <p className="mt-2">
+              {pick(
+                "Casualty figures for the movement as a whole are disputed across sources: Bangladesh's health ministry recorded over 1,000 deaths, the UN Human Rights Office estimated more than 1,400, and the student-led Students Against Discrimination platform has cited 1,581. Entries on this page attribute specific figures to the outlet or organisation that reported them rather than presenting a single reconciled total.",
+                "সামগ্রিকভাবে আন্দোলনে নিহতের সংখ্যা নিয়ে বিভিন্ন সূত্রে ভিন্নতা রয়েছে: বাংলাদেশ স্বাস্থ্য মন্ত্রণালয় ১,০০০-এর বেশি মৃত্যু নথিভুক্ত করেছে, জাতিসংঘ মানবাধিকার দপ্তরের হিসাবে এই সংখ্যা ১,৪০০-এর বেশি, এবং শিক্ষার্থী নেতৃত্বাধীন ‘বৈষম্যবিরোধী ছাত্র আন্দোলন’ প্ল্যাটফর্ম ১,৫৮১ জনের কথা উল্লেখ করেছে। এই পাতার এন্ট্রিগুলোতে নির্দিষ্ট সংখ্যা একক কোনো চূড়ান্ত হিসাব হিসেবে উপস্থাপনের বদলে যে সংবাদমাধ্যম বা সংস্থা তা প্রতিবেদন করেছে তার নামসহ উল্লেখ করা হয়েছে।"
+              )}
+            </p>
+          </div>
         </div>
-      </div></section>
+      </section>
     </>
   );
 }

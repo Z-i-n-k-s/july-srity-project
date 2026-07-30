@@ -9,7 +9,7 @@ import useFilePreview from "../../hooks/useFilePreview";
 import useOnlineStatus from "../../hooks/useOnlineStatus";
 import { userApi } from "../../lib/api";
 import { STORAGE_KEYS, storage } from "../../lib/storage";
-import { makeId } from "../../lib/utils";
+import { isFutureLocalDateTime, makeId, toLocalDateInputValue } from "../../lib/utils";
 import { useLanguage } from "../../context/LanguageContext";
 
 const initial = { name: "", age: "", relationship: "", lastSeenDate: "", lastSeenLocation: "", clothing: "", description: "", reporterContact: "", visibilityConsent: false, declaration: false };
@@ -32,11 +32,22 @@ export default function ReportMissingPersonPage() {
   const isOnline = useOnlineStatus();
   const { pick } = useLanguage();
   const photoPreviewUrl = useFilePreview(photo);
+  const maxReportDate = toLocalDateInputValue();
 
   useEffect(() => {
     const draft = storage.get(STORAGE_KEYS.drafts, []).find((item) => item.kind === "missing-report");
     if (draft?.values) setValues(draft.values);
   }, []);
+
+  const updateValue = (field, value) => {
+    setValues((current) => ({ ...current, [field]: value }));
+    setErrors((current) => {
+      if (!current[field]) return current;
+      const next = { ...current };
+      delete next[field];
+      return next;
+    });
+  };
 
   const clearPhoto = () => {
     setPhoto(null);
@@ -69,6 +80,7 @@ export default function ReportMissingPersonPage() {
     const next = {};
     if (values.name.trim().length < 2) next.name = "Enter the missing person’s name.";
     if (!values.lastSeenDate) next.lastSeenDate = "Select the last-seen date.";
+    else if (isFutureLocalDateTime(values.lastSeenDate)) next.lastSeenDate = "The last-seen date cannot be in the future.";
     if (!values.lastSeenLocation.trim()) next.lastSeenLocation = "Enter an approximate location.";
     if (values.description.trim().length < 20) next.description = "Add at least 20 characters of useful context.";
     if (!values.reporterContact.trim()) next.reporterContact = "Provide a private contact method.";
@@ -107,12 +119,12 @@ export default function ReportMissingPersonPage() {
       <PageHeader label={pick("Private report", "ব্যক্তিগত রিপোর্ট")} title={pick("Report a Missing Person", "নিখোঁজ ব্যক্তির রিপোর্ট করুন")} description={pick("Send information for administrator review. Nothing becomes public automatically, and your contact details remain private.", "অ্যাডমিন পর্যালোচনার জন্য তথ্য পাঠান। কিছুই স্বয়ংক্রিয়ভাবে প্রকাশ হয় না এবং আপনার যোগাযোগের তথ্য ব্যক্তিগত থাকে।")} />
       <section className="section-pad"><div className="page-shell grid gap-8 lg:grid-cols-[1fr_330px]">
         <form onSubmit={submit} className="surface-card space-y-6 rounded-2xl p-5 sm:p-7" noValidate>
-          <div className="grid gap-5 sm:grid-cols-2"><FormField label="Full name" id="missing-name" error={errors.name} required><input id="missing-name" className="field-control" value={values.name} onChange={(e) => setValues({ ...values, name: e.target.value })} /></FormField><FormField label="Age (if known)" id="missing-age"><input id="missing-age" type="number" min="0" max="120" className="field-control" value={values.age} onChange={(e) => setValues({ ...values, age: e.target.value })} /></FormField></div>
-          <FormField label="Your relationship to the person" id="relationship" hint="Used privately during verification."><input id="relationship" className="field-control" value={values.relationship} onChange={(e) => setValues({ ...values, relationship: e.target.value })} /></FormField>
-          <div className="grid gap-5 sm:grid-cols-2"><FormField label="Last-seen date" id="lastSeenDate" error={errors.lastSeenDate} required><input id="lastSeenDate" type="date" className="field-control" value={values.lastSeenDate} onChange={(e) => setValues({ ...values, lastSeenDate: e.target.value })} /></FormField><FormField label="Last-seen location" id="lastSeenLocation" error={errors.lastSeenLocation} required><input id="lastSeenLocation" className="field-control" value={values.lastSeenLocation} onChange={(e) => setValues({ ...values, lastSeenLocation: e.target.value })} placeholder="Area or landmark" /></FormField></div>
-          <FormField label="Clothing or public identifying detail" id="clothing"><input id="clothing" className="field-control" value={values.clothing} onChange={(e) => setValues({ ...values, clothing: e.target.value })} /></FormField>
-          <FormField label="Additional context" id="missing-description" error={errors.description} required><textarea id="missing-description" rows="6" className="field-control" value={values.description} onChange={(e) => setValues({ ...values, description: e.target.value })} /></FormField>
-          <FormField label="Private reporter contact" id="reporterContact" error={errors.reporterContact} hint="This is never shown on the public card." required><input id="reporterContact" className="field-control" value={values.reporterContact} onChange={(e) => setValues({ ...values, reporterContact: e.target.value })} /></FormField>
+          <div className="grid gap-5 sm:grid-cols-2"><FormField label="Full name" id="missing-name" error={errors.name} required><input id="missing-name" className="field-control" value={values.name} onChange={(e) => updateValue("name", e.target.value)} /></FormField><FormField label="Age (if known)" id="missing-age"><input id="missing-age" type="number" min="0" max="120" className="field-control" value={values.age} onChange={(e) => updateValue("age", e.target.value)} /></FormField></div>
+          <FormField label="Your relationship to the person" id="relationship" hint="Used privately during verification."><input id="relationship" className="field-control" value={values.relationship} onChange={(e) => updateValue("relationship", e.target.value)} /></FormField>
+          <div className="grid gap-5 sm:grid-cols-2"><FormField label="Last-seen date" id="lastSeenDate" error={errors.lastSeenDate} required><input id="lastSeenDate" type="date" className="field-control" value={values.lastSeenDate} max={maxReportDate} onChange={(e) => updateValue("lastSeenDate", e.target.value)} /></FormField><FormField label="Last-seen location" id="lastSeenLocation" error={errors.lastSeenLocation} required><input id="lastSeenLocation" className="field-control" value={values.lastSeenLocation} onChange={(e) => updateValue("lastSeenLocation", e.target.value)} placeholder="Area or landmark" /></FormField></div>
+          <FormField label="Clothing or public identifying detail" id="clothing"><input id="clothing" className="field-control" value={values.clothing} onChange={(e) => updateValue("clothing", e.target.value)} /></FormField>
+          <FormField label="Additional context" id="missing-description" error={errors.description} required><textarea id="missing-description" rows="6" className="field-control" value={values.description} onChange={(e) => updateValue("description", e.target.value)} /></FormField>
+          <FormField label="Private reporter contact" id="reporterContact" error={errors.reporterContact} hint="This is never shown on the public card." required><input id="reporterContact" className="field-control" value={values.reporterContact} onChange={(e) => updateValue("reporterContact", e.target.value)} /></FormField>
           <FormField
             label="Recent photograph (optional)"
             id="missing-photo"
@@ -169,9 +181,9 @@ export default function ReportMissingPersonPage() {
               </button>
             )}
           </FormField>
-          <div><label className="flex items-start gap-3 text-sm leading-6 text-[#C6C2BC]"><input type="checkbox" checked={values.visibilityConsent} onChange={(e) => setValues({ ...values, visibilityConsent: e.target.checked })} className="mt-1 h-4 w-4 accent-[#D79A54]" /><span>I understand that only admin-approved information and the approved photograph may become public.</span></label>{errors.visibilityConsent && <p className="mt-2 text-sm text-red-300">{errors.visibilityConsent}</p>}</div>
-          <div><label className="flex items-start gap-3 text-sm leading-6 text-[#C6C2BC]"><input type="checkbox" checked={values.declaration} onChange={(e) => setValues({ ...values, declaration: e.target.checked })} className="mt-1 h-4 w-4 accent-[#D79A54]" /><span>I declare that this report is made in good faith and the information is accurate to the best of my knowledge.</span></label>{errors.declaration && <p className="mt-2 text-sm text-red-300">{errors.declaration}</p>}</div>
-          <div className="flex flex-col gap-3 sm:flex-row"><Button type="submit" variant="rose" size="lg" loading={loading}>{isOnline ? "Submit Private Report" : "Save Report Offline"}</Button><Button type="button" variant="secondary" size="lg" onClick={saveDraft}><Save className="h-4 w-4" /> {pick("Save Draft", "খসড়া সংরক্ষণ")}</Button></div>
+          <div><label className="flex items-start gap-3 text-sm leading-6 text-[#C6C2BC]"><input type="checkbox" checked={values.visibilityConsent} onChange={(e) => updateValue("visibilityConsent", e.target.checked)} className="mt-1 h-4 w-4 accent-[#D79A54]" /><span>I understand that only admin-approved information and the approved photograph may become public.</span></label>{errors.visibilityConsent && <p className="mt-2 text-sm text-red-300">{errors.visibilityConsent}</p>}</div>
+          <div><label className="flex items-start gap-3 text-sm leading-6 text-[#C6C2BC]"><input type="checkbox" checked={values.declaration} onChange={(e) => updateValue("declaration", e.target.checked)} className="mt-1 h-4 w-4 accent-[#D79A54]" /><span>I declare that this report is made in good faith and the information is accurate to the best of my knowledge.</span></label>{errors.declaration && <p className="mt-2 text-sm text-red-300">{errors.declaration}</p>}</div>
+          <div className="flex flex-col gap-3 sm:flex-row"><Button type="submit" variant="rose" size="lg" loading={loading}>{isOnline ? "Submit Private Report" : "Save Report Offline"}</Button><Button type="button" variant="secondary" size="lg" onClick={saveDraft}><Save className="h-4 w-4" /> {pick("Save Draft", "খসড়া সংরক্ষণ")}</Button><Button to="/missing-persons" variant="ghost" size="lg">{pick("Cancel", "বাতিল")}</Button></div>
         </form>
         <aside className="space-y-4"><div className="rounded-2xl border border-archive-teal/20 bg-archive-teal/[0.06] p-5"><ShieldCheck className="h-6 w-6 text-archive-teal" /><h2 className="mt-4 font-semibold">Verification before publication</h2><p className="mt-2 text-sm leading-6 text-[#B9CFCB]">An administrator reviews identity, relationship, consent and public safety before any profile is published.</p></div><div className="rounded-2xl border border-archive-rose/20 bg-archive-rose/[0.06] p-5"><AlertTriangle className="h-6 w-6 text-archive-rose" /><h2 className="mt-4 font-semibold">Protect the person</h2><p className="mt-2 text-sm leading-6 text-[#CDB8BC]">Do not publish private phone numbers, exact home addresses or unverified accusations.</p></div></aside>
       </div></section>
