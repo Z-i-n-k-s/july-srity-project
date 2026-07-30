@@ -310,7 +310,7 @@ export default function AdminMissingReports() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [pick, toast]);
 
   useEffect(() => {
     if (!selected) return undefined;
