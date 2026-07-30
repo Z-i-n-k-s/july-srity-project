@@ -17,7 +17,7 @@ const { assertTransition } = require("../helpers/statusTransitions");
 const { createNotification, writeAudit } = require("../helpers/activity");
 const { assertMediaAccessible, assertMediaPublishable } = require("../helpers/mediaValidation");
 const { removeEncryptedFields } = require("../helpers/sanitize");
-
+const mongoose = require("mongoose");
 function privateSelect(query) {
   return query.select("+missingPersonDetails +reporterDetails +familyContactIds +identityMediaIds +evidenceMediaIds");
 }
@@ -46,20 +46,51 @@ const listPublic = asyncHandler(async (req, res) => {
 });
 
 const getPublic = asyncHandler(async (req, res) => {
-  const report = await MissingPersonReport.findOne({
-    _id: req.params.reportId,
+  const { reportId } = req.params;
+
+  const filter = {
     status: "VERIFIED_MISSING",
     deletedAt: null,
-  })
+  };
+
+  if (mongoose.Types.ObjectId.isValid(reportId)) {
+    filter._id = reportId;
+  } else {
+    filter.reportNumber = reportId;
+  }
+
+  const report = await MissingPersonReport.findOne(filter)
     .select("-assignedAdminIds -duplicateOfReportId -conversationId")
-    .populate({ path: "profileMediaId", match: { visibility: "PUBLIC", uploadStatus: "READY", moderationStatus: "APPROVED", deletedAt: null }, select: "secureUrl url originalName fileType" })
+    .populate({
+      path: "profileMediaId",
+      match: {
+        visibility: "PUBLIC",
+        uploadStatus: "READY",
+        moderationStatus: "APPROVED",
+        deletedAt: null,
+      },
+      select: "secureUrl url originalName fileType",
+    })
     .populate("lastSeen.locationId", "name nameBn type")
     .populate("relatedJulyEventId", "title titleBn slug eventDate");
-  if (!report) throw new AppError("Verified missing-person report was not found.", 404, "MISSING_PERSON_NOT_FOUND");
-  if (!report.publicContactAllowed) report.publicContactNumber = null;
-  return sendSuccess(res, { message: "Missing-person report retrieved successfully.", data: report });
-});
 
+  if (!report) {
+    throw new AppError(
+      "Verified missing-person report was not found.",
+      404,
+      "MISSING_PERSON_NOT_FOUND"
+    );
+  }
+
+  if (!report.publicContactAllowed) {
+    report.publicContactNumber = null;
+  }
+
+  return sendSuccess(res, {
+    message: "Missing-person report retrieved successfully.",
+    data: report,
+  });
+});
 const create = asyncHandler(async (req, res) => {
   if (req.body.consent !== true && req.body.consentGranted !== true) {
     throw new AppError("Consent is required before a missing-person report can be saved.", 422, "CONSENT_REQUIRED");

@@ -1,89 +1,254 @@
 const backendDomin =
-  process.env.REACT_APP_BACKEND_URL || "http://localhost:8080";
+  process.env.REACT_APP_BACKEND_URL ||
+  "http://localhost:8080";
 
-const endpoint = (path, method = "get") => ({
-  url: `${backendDomin}${path}`,
-  method,
+const cleanBackendDomain = backendDomin.replace(/\/+$/, "");
+
+const endpoint = (path, method = "GET") => ({
+  url: `${cleanBackendDomain}${path}`,
+  method: method.toUpperCase(),
 });
 
 const SummaryApi = {
-  signUP: endpoint("/api/signup", "post"),
-  signIn: endpoint("/api/signin", "post"),
-  current_user: endpoint("/api/user-details", "get"),
-  forgotPassword: endpoint("/api/forgot-password", "post"),
-  verifyResetToken: endpoint("/api/verify-reset-token", "get"),
-  resetPassword: endpoint("/api/reset-password", "post"),
-  logout_user: endpoint("/api/userLogout", "get"),
-  allUser: endpoint("/api/all-user", "get"),
-  userSearch: endpoint("/api/user-search", "post"),
-  updateUser: endpoint("/api/update-user", "post"),
-  updateProfile: endpoint("/api/update-profile", "post"),
-  deleteUser: endpoint("/api/delete-user", "post"),
+  /* ------------------------------------------------------------------------ */
+  /* Authentication                                                           */
+  /* ------------------------------------------------------------------------ */
 
-  publicArchive: endpoint("/api/archive", "get"),
-  publicStories: endpoint("/api/stories", "get"),
-  publicTimeline: endpoint("/api/timeline", "get"),
-  publicMissingPersons: endpoint("/api/missing-persons", "get"),
+  signUP: endpoint("/api/signup", "POST"),
+  signIn: endpoint("/api/signin", "POST"),
+  current_user: endpoint("/api/user-details", "GET"),
+  forgotPassword: endpoint(
+    "/api/forgot-password",
+    "POST",
+  ),
+  verifyResetToken: endpoint(
+    "/api/verify-reset-token",
+    "GET",
+  ),
+  resetPassword: endpoint(
+    "/api/reset-password",
+    "POST",
+  ),
+  logout_user: endpoint("/api/userLogout", "GET"),
 
-  submitEvidence: endpoint("/api/submissions", "post"),
-  mySubmissions: endpoint("/api/submissions/my", "get"),
-  submissionDetails: endpoint("/api/submissions", "get"),
-  saveDraft: endpoint("/api/submissions/drafts", "post"),
+  /* ------------------------------------------------------------------------ */
+  /* User administration                                                      */
+  /* ------------------------------------------------------------------------ */
 
-  createSupportRequest: endpoint("/api/support/requests", "post"),
-  mySupportRooms: endpoint("/api/support/rooms", "get"),
-  supportRoom: endpoint("/api/support/rooms", "get"),
-  supportMessage: endpoint("/api/support/rooms", "post"),
+  allUser: endpoint("/api/all-user", "GET"),
+  userSearch: endpoint("/api/user-search", "POST"),
+  updateUser: endpoint("/api/update-user", "POST"),
+  updateProfile: endpoint(
+    "/api/update-profile",
+    "POST",
+  ),
+  deleteUser: endpoint("/api/delete-user", "POST"),
 
-  reportMissingPerson: endpoint("/api/missing-persons/reports", "post"),
-  myMissingReports: endpoint("/api/missing-persons/reports/my", "get"),
-  reportSighting: endpoint("/api/missing-persons", "post"),
+  /* ------------------------------------------------------------------------ */
+  /* Public archive                                                           */
+  /* ------------------------------------------------------------------------ */
 
-  adminDashboard: endpoint("/api/admin/dashboard", "get"),
-  adminSubmissions: endpoint("/api/admin/submissions", "get"),
-  adminReviewSubmission: endpoint("/api/admin/submissions", "post"),
-  adminSupportCases: endpoint("/api/admin/support-cases", "get"),
-  adminSupportCase: endpoint("/api/admin/support-cases", "get"),
-  adminSupportMessage: endpoint("/api/admin/support-cases", "post"),
-  adminVerifyMedicalDocument: endpoint("/api/admin/support-cases", "post"),
- reportMissingPerson: endpoint("/api/missing-persons", "post"),
+  publicArchive: endpoint("/api/archive", "GET"),
+  publicStories: endpoint("/api/stories", "GET"),
+  publicTimeline: endpoint("/api/timeline", "GET"),
 
-myMissingReports: endpoint("/api/missing-persons/mine", "get"),
+  /* ------------------------------------------------------------------------ */
+  /* Documentary submissions                                                  */
+  /* ------------------------------------------------------------------------ */
 
-reportSighting: (reportId) =>
-  endpoint(`/api/missing-persons/${reportId}/sightings`, "post"),
-
-publicMissingPerson: (reportId) =>
-  endpoint(`/api/missing-persons/public/${reportId}`, "get"),
-
-missingReport: (reportId) =>
-  endpoint(`/api/missing-persons/${reportId}`, "get"),
-
-updateMissingReport: (reportId) =>
-  endpoint(`/api/missing-persons/${reportId}`, "patch"),
-
-submitMissingReport: (reportId) =>
-  endpoint(`/api/missing-persons/${reportId}/submit`, "post"),
-
-missingAdminReports: endpoint("/api/missing-persons/admin", "get"),
-
-missingReportStatus: (reportId) =>
-  endpoint(`/api/missing-persons/${reportId}/status`, "patch"),
-
-missingAssignAdmins: (reportId) =>
-  endpoint(`/api/missing-persons/${reportId}/assign`, "patch"),
-
-missingSightingStatus: (reportId, sightingId) =>
-  endpoint(
-    `/api/missing-persons/${reportId}/sightings/${sightingId}/status`,
-    "patch"
+  submitEvidence: endpoint("/api/submissions", "POST"),
+  mySubmissions: endpoint(
+    "/api/submissions/my",
+    "GET",
+  ),
+  submissionDetails: endpoint(
+    "/api/submissions",
+    "GET",
+  ),
+  saveDraft: endpoint(
+    "/api/submissions/drafts",
+    "POST",
   ),
 
-deleteMissingReport: (reportId) =>
-  endpoint(`/api/missing-persons/${reportId}`, "delete"),
-  adminArchive: endpoint("/api/admin/archive", "get"),
-  adminPublishArchive: endpoint("/api/admin/archive", "post"),
+  /* ------------------------------------------------------------------------ */
+  /* Support                                                                  */
+  /* ------------------------------------------------------------------------ */
+
+  createSupportRequest: endpoint(
+    "/api/support/requests",
+    "POST",
+  ),
+  mySupportRooms: endpoint(
+    "/api/support/rooms",
+    "GET",
+  ),
+  supportRoom: endpoint(
+    "/api/support/rooms",
+    "GET",
+  ),
+  supportMessage: endpoint(
+    "/api/support/rooms",
+    "POST",
+  ),
+
+  /* ------------------------------------------------------------------------ */
+  /* Missing-person public and user routes                                    */
+  /* ------------------------------------------------------------------------ */
+
+  publicMissingPersons: endpoint(
+    "/api/missing-persons",
+    "GET",
+  ),
+
+  publicMissingPerson: (reportId) =>
+    endpoint(
+      `/api/missing-persons/public/${encodeURIComponent(
+        reportId,
+      )}`,
+      "GET",
+    ),
+
+  reportMissingPerson: endpoint(
+    "/api/missing-persons",
+    "POST",
+  ),
+
+  myMissingReports: endpoint(
+    "/api/missing-persons/mine",
+    "GET",
+  ),
+
+  reportSighting: (reportId) =>
+    endpoint(
+      `/api/missing-persons/${encodeURIComponent(
+        reportId,
+      )}/sightings`,
+      "POST",
+    ),
+
+  updateMissingReport: (reportId) =>
+    endpoint(
+      `/api/missing-persons/${encodeURIComponent(
+        reportId,
+      )}`,
+      "PATCH",
+    ),
+
+  submitMissingReport: (reportId) =>
+    endpoint(
+      `/api/missing-persons/${encodeURIComponent(
+        reportId,
+      )}/submit`,
+      "POST",
+    ),
+
+  deleteMissingReport: (reportId) =>
+    endpoint(
+      `/api/missing-persons/${encodeURIComponent(
+        reportId,
+      )}`,
+      "DELETE",
+    ),
+
+  /* ------------------------------------------------------------------------ */
+  /* Admin dashboard                                                          */
+  /* ------------------------------------------------------------------------ */
+
+  adminDashboard: endpoint(
+    "/api/admin/dashboard",
+    "GET",
+  ),
+
+  adminSubmissions: endpoint(
+    "/api/admin/submissions",
+    "GET",
+  ),
+
+  adminReviewSubmission: endpoint(
+    "/api/admin/submissions",
+    "POST",
+  ),
+
+  adminSupportCases: endpoint(
+    "/api/admin/support-cases",
+    "GET",
+  ),
+
+  adminSupportCase: endpoint(
+    "/api/admin/support-cases",
+    "GET",
+  ),
+
+  adminSupportMessage: endpoint(
+    "/api/admin/support-cases",
+    "POST",
+  ),
+
+  adminVerifyMedicalDocument: endpoint(
+    "/api/admin/support-cases",
+    "POST",
+  ),
+
+  /* ------------------------------------------------------------------------ */
+  /* Admin missing-person routes                                              */
+  /* ------------------------------------------------------------------------ */
+
+  missingAdminReports: endpoint(
+    "/api/missing-persons/admin",
+    "GET",
+  ),
+
+  missingReport: (reportId) =>
+    endpoint(
+      `/api/missing-persons/${encodeURIComponent(
+        reportId,
+      )}`,
+      "GET",
+    ),
+
+  missingReportStatus: (reportId) =>
+    endpoint(
+      `/api/missing-persons/${encodeURIComponent(
+        reportId,
+      )}/status`,
+      "PATCH",
+    ),
+
+  missingAssignAdmins: (reportId) =>
+    endpoint(
+      `/api/missing-persons/${encodeURIComponent(
+        reportId,
+      )}/assign`,
+      "PATCH",
+    ),
+
+  missingSightingStatus: (
+    reportId,
+    sightingId,
+  ) =>
+    endpoint(
+      `/api/missing-persons/${encodeURIComponent(
+        reportId,
+      )}/sightings/${encodeURIComponent(
+        sightingId,
+      )}/status`,
+      "PATCH",
+    ),
+
+  /* ------------------------------------------------------------------------ */
+  /* Admin archive                                                            */
+  /* ------------------------------------------------------------------------ */
+
+  adminArchive: endpoint(
+    "/api/admin/archive",
+    "GET",
+  ),
+
+  adminPublishArchive: endpoint(
+    "/api/admin/archive",
+    "POST",
+  ),
 };
 
-export { backendDomin };
+export { cleanBackendDomain as backendDomin };
 export default SummaryApi;

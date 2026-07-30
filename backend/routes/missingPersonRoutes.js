@@ -544,7 +544,10 @@ const validateObjectId = require("../middleware/validateObjectId");
 
 const router = express.Router();
 router.get("/", missing.listPublic);
-router.get("/public/:reportId", validateObjectId("reportId"), missing.getPublic);
+router.get(
+  "/public/:reportId",
+  missing.getPublic
+);
 router.post("/:reportId/sightings", optionalAuthenticate, validateObjectId("reportId"), missing.createSighting);
 
 router.use(authenticate);

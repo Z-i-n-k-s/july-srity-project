@@ -2,218 +2,762 @@ import SummaryApi from "../common";
 import { sleep } from "./utils";
 
 export const DEMO_FALLBACK =
-  String(process.env.REACT_APP_DEMO_FALLBACK ?? "false") !== "false";
+  String(
+    process.env.REACT_APP_DEMO_FALLBACK ?? "false",
+  ).toLowerCase() !== "false";
 
-const messageFrom = (payload) =>
-  payload?.message || payload?.error || "Something went wrong.";
-const unwrap = (payload) => payload?.data ?? payload?.results ?? payload;
+const messageFrom = (payload) => {
+  if (typeof payload === "string") {
+    return payload || "Something went wrong.";
+  }
 
-export async function apiRequest(endpoint, options = {}) {
-  const url = typeof endpoint === "string" ? endpoint : endpoint.url;
-  const method = options.method || endpoint?.method || "get";
-  const headers = new Headers(options.headers || {});
-  const isFormData = options.body instanceof FormData;
-  if (!isFormData && options.body && !headers.has("Content-Type"))
-    headers.set("Content-Type", "application/json");
+  if (typeof payload?.error === "string") {
+    return payload.error;
+  }
 
-  const response = await fetch(url, {
+  if (payload?.error?.message) {
+    return payload.error.message;
+  }
+
+  return payload?.message || "Something went wrong.";
+};
+
+const unwrap = (payload) =>
+  payload?.data ?? payload?.results ?? payload;
+
+function requireId(id, message) {
+  if (
+    id === null ||
+    id === undefined ||
+    String(id).trim() === ""
+  ) {
+    throw new Error(message);
+  }
+
+  return String(id).trim();
+}
+
+function appendId(baseUrl, id) {
+  return `${baseUrl}/${encodeURIComponent(id)}`;
+}
+
+export async function apiRequest(
+  endpoint,
+  options = {},
+) {
+  const endpointConfig =
+    typeof endpoint === "string"
+      ? {
+          url: endpoint,
+          method: "GET",
+        }
+      : endpoint;
+
+  if (!endpointConfig?.url) {
+    throw new Error(
+      "API endpoint URL is missing. Check src/common/index.js.",
+    );
+  }
+
+  const method = String(
+    options.method ||
+      endpointConfig.method ||
+      "GET",
+  ).toUpperCase();
+
+  const headers = new Headers(
+    options.headers || {},
+  );
+
+  const requestOptions = {
     ...options,
     method,
-    credentials: "include",
+    credentials:
+      options.credentials || "include",
     headers,
-  });
+  };
 
-  const contentType = response.headers.get("content-type") || "";
-  const payload = contentType.includes("application/json")
-    ? await response.json()
-    : await response.text();
-  if (!response.ok || payload?.error) throw new Error(messageFrom(payload));
+  /*
+   * GET and HEAD requests cannot contain a body.
+   */
+  if (method === "GET" || method === "HEAD") {
+    delete requestOptions.body;
+    headers.delete("Content-Type");
+  } else {
+    const hasBody =
+      requestOptions.body !== undefined &&
+      requestOptions.body !== null;
+
+    const isFormData =
+      typeof FormData !== "undefined" &&
+      requestOptions.body instanceof FormData;
+
+    if (
+      hasBody &&
+      !isFormData &&
+      !headers.has("Content-Type")
+    ) {
+      headers.set(
+        "Content-Type",
+        "application/json",
+      );
+    }
+  }
+
+  const response = await fetch(
+    endpointConfig.url,
+    requestOptions,
+  );
+
+  const contentType =
+    response.headers.get("content-type") || "";
+
+  const responseText = await response.text();
+
+  let payload = null;
+
+  if (responseText) {
+    if (
+      contentType.includes("application/json")
+    ) {
+      try {
+        payload = JSON.parse(responseText);
+      } catch {
+        throw new Error(
+          "The backend returned invalid JSON.",
+        );
+      }
+    } else {
+      payload = responseText;
+    }
+  }
+
+  const hasApiError =
+    payload?.success === false ||
+    payload?.error === true ||
+    typeof payload?.error === "string" ||
+    Boolean(payload?.error?.message);
+
+  if (!response.ok || hasApiError) {
+    throw new Error(messageFrom(payload));
+  }
+
   return payload;
 }
 
-async function requestOrFallback(endpoint, options, fallback) {
+async function requestOrFallback(
+  endpoint,
+  options = {},
+  fallback,
+) {
   try {
     return await apiRequest(endpoint, options);
   } catch (error) {
-    if (!DEMO_FALLBACK || !fallback) throw error;
+    const hasFallback =
+      fallback !== undefined;
+
+    if (!DEMO_FALLBACK || !hasFallback) {
+      throw error;
+    }
+
     await sleep(250);
-    return typeof fallback === "function" ? fallback(error) : fallback;
+
+    return typeof fallback === "function"
+      ? fallback(error)
+      : fallback;
   }
 }
 
+/* -------------------------------------------------------------------------- */
+/*                                PUBLIC API                                  */
+/* -------------------------------------------------------------------------- */
+
 export const publicApi = {
   archive: (fallback) =>
-    requestOrFallback(SummaryApi.publicArchive, {}, fallback),
-  archiveDetail: (id, fallback) =>
-    requestOrFallback(`${SummaryApi.publicArchive.url}/${id}`, {}, fallback),
-  stories: (fallback) =>
-    requestOrFallback(SummaryApi.publicStories, {}, fallback),
-  storyDetail: (id, fallback) =>
-    requestOrFallback(`${SummaryApi.publicStories.url}/${id}`, {}, fallback),
-  timeline: (fallback) =>
-    requestOrFallback(SummaryApi.publicTimeline, {}, fallback),
-  missingPersons: (fallback) =>
-    requestOrFallback(SummaryApi.publicMissingPersons, {}, fallback),
-  missingPerson: (id, fallback) =>
     requestOrFallback(
-      `${SummaryApi.publicMissingPersons.url}/${id}`,
-      {},
+      SummaryApi.publicArchive,
+      {
+        method:
+          SummaryApi.publicArchive.method,
+      },
       fallback,
     ),
+
+  archiveDetail: (id, fallback) => {
+    const safeId = requireId(
+      id,
+      "Archive record ID is required.",
+    );
+
+    return requestOrFallback(
+      appendId(
+        SummaryApi.publicArchive.url,
+        safeId,
+      ),
+      {
+        method: "GET",
+      },
+      fallback,
+    );
+  },
+
+  stories: (fallback) =>
+    requestOrFallback(
+      SummaryApi.publicStories,
+      {
+        method:
+          SummaryApi.publicStories.method,
+      },
+      fallback,
+    ),
+
+  storyDetail: (id, fallback) => {
+    const safeId = requireId(
+      id,
+      "Story ID is required.",
+    );
+
+    return requestOrFallback(
+      appendId(
+        SummaryApi.publicStories.url,
+        safeId,
+      ),
+      {
+        method: "GET",
+      },
+      fallback,
+    );
+  },
+
+  timeline: (fallback) =>
+    requestOrFallback(
+      SummaryApi.publicTimeline,
+      {
+        method:
+          SummaryApi.publicTimeline.method,
+      },
+      fallback,
+    ),
+
+  missingPersons: (fallback) =>
+    requestOrFallback(
+      SummaryApi.publicMissingPersons,
+      {
+        method:
+          SummaryApi.publicMissingPersons.method,
+      },
+      fallback,
+    ),
+
+  missingPerson: (id, fallback) => {
+    const safeId = requireId(
+      id,
+      "Missing-person report ID is required.",
+    );
+
+    /*
+     * publicMissingPerson is a function in common/index.js.
+     */
+    const api =
+      SummaryApi.publicMissingPerson(safeId);
+
+    return requestOrFallback(
+      api,
+      {
+        method: api.method,
+      },
+      fallback,
+    );
+  },
 };
+
+/* -------------------------------------------------------------------------- */
+/*                                  USER API                                  */
+/* -------------------------------------------------------------------------- */
 
 export const userApi = {
   updateProfile: async (values) =>
     unwrap(
-      await apiRequest(SummaryApi.updateProfile, {
-        method: SummaryApi.updateProfile.method,
-        body: JSON.stringify(values),
-      }),
+      await apiRequest(
+        SummaryApi.updateProfile,
+        {
+          method:
+            SummaryApi.updateProfile.method,
+          body: JSON.stringify(values),
+        },
+      ),
     ),
+
   submitEvidence: (formData) =>
     requestOrFallback(
       SummaryApi.submitEvidence,
       {
-        method: SummaryApi.submitEvidence.method,
+        method:
+          SummaryApi.submitEvidence.method,
         body: formData,
       },
-      () => ({ success: true, data: { id: `SUB-${Date.now()}` } }),
+      () => ({
+        success: true,
+        data: {
+          id: `SUB-${Date.now()}`,
+        },
+      }),
     ),
+
   getMySubmissions: (fallback) =>
-    requestOrFallback(SummaryApi.mySubmissions, {}, fallback),
+    requestOrFallback(
+      SummaryApi.mySubmissions,
+      {
+        method:
+          SummaryApi.mySubmissions.method,
+      },
+      fallback,
+    ),
+
   createSupportRequest: (values) => {
-    const body = values instanceof FormData ? values : JSON.stringify(values);
+    const isFormData =
+      typeof FormData !== "undefined" &&
+      values instanceof FormData;
+
+    const body = isFormData
+      ? values
+      : JSON.stringify(values);
+
     return requestOrFallback(
       SummaryApi.createSupportRequest,
       {
-        method: SummaryApi.createSupportRequest.method,
+        method:
+          SummaryApi.createSupportRequest.method,
         body,
       },
       () => ({
         success: true,
-        data: { id: `JS-HELP-${String(Date.now()).slice(-6)}` },
+        data: {
+          id: `JS-HELP-${String(
+            Date.now(),
+          ).slice(-6)}`,
+        },
       }),
     );
   },
+
   getSupportRooms: (fallback) =>
-    requestOrFallback(SummaryApi.mySupportRooms, {}, fallback),
-  getSupportRoom: (roomId, fallback) =>
-    requestOrFallback(`${SummaryApi.supportRoom.url}/${roomId}`, {}, fallback),
-  sendSupportMessage: (roomId, formData) =>
     requestOrFallback(
-      `${SummaryApi.supportMessage.url}/${roomId}/messages`,
+      SummaryApi.mySupportRooms,
       {
-        method: SummaryApi.supportMessage.method,
+        method:
+          SummaryApi.mySupportRooms.method,
+      },
+      fallback,
+    ),
+
+  getSupportRoom: (roomId, fallback) => {
+    const safeRoomId = requireId(
+      roomId,
+      "Support room ID is required.",
+    );
+
+    return requestOrFallback(
+      appendId(
+        SummaryApi.supportRoom.url,
+        safeRoomId,
+      ),
+      {
+        method: "GET",
+      },
+      fallback,
+    );
+  },
+
+  sendSupportMessage: (
+    roomId,
+    formData,
+  ) => {
+    const safeRoomId = requireId(
+      roomId,
+      "Support room ID is required.",
+    );
+
+    return requestOrFallback(
+      `${appendId(
+        SummaryApi.supportMessage.url,
+        safeRoomId,
+      )}/messages`,
+      {
+        method:
+          SummaryApi.supportMessage.method,
         body: formData,
       },
-      { success: true },
-    ),
+      {
+        success: true,
+      },
+    );
+  },
+
   reportMissingPerson: (formData) =>
     requestOrFallback(
       SummaryApi.reportMissingPerson,
       {
-        method: SummaryApi.reportMissingPerson.method,
+        method:
+          SummaryApi.reportMissingPerson.method,
         body: formData,
       },
-      () => ({ success: true, data: { id: `MPR-${Date.now()}` } }),
+      () => ({
+        success: true,
+        data: {
+          id: `MPR-${Date.now()}`,
+        },
+      }),
     ),
+
   getMyMissingReports: (fallback) =>
-    requestOrFallback(SummaryApi.myMissingReports, {}, fallback),
-  reportSighting: (personId, values) =>
     requestOrFallback(
-      `${SummaryApi.reportSighting.url}/${personId}/sightings`,
+      SummaryApi.myMissingReports,
       {
-        method: SummaryApi.reportSighting.method,
+        method:
+          SummaryApi.myMissingReports.method,
+      },
+      fallback,
+    ),
+
+  reportSighting: (
+    reportId,
+    values,
+  ) => {
+    const safeReportId = requireId(
+      reportId,
+      "Missing-person report ID is required.",
+    );
+
+    /*
+     * reportSighting is a function in common/index.js.
+     */
+    const api =
+      SummaryApi.reportSighting(
+        safeReportId,
+      );
+
+    return requestOrFallback(
+      api,
+      {
+        method: api.method,
         body: JSON.stringify(values),
       },
-      { success: true },
-    ),
+      {
+        success: true,
+      },
+    );
+  },
 };
+
+/* -------------------------------------------------------------------------- */
+/*                                 ADMIN API                                  */
+/* -------------------------------------------------------------------------- */
 
 export const adminApi = {
   dashboard: (fallback) =>
-    requestOrFallback(SummaryApi.adminDashboard, {}, fallback),
-  submissions: (fallback) =>
-    requestOrFallback(SummaryApi.adminSubmissions, {}, fallback),
-  reviewSubmission: (id, values) =>
     requestOrFallback(
-      `${SummaryApi.adminReviewSubmission.url}/${id}/review`,
+      SummaryApi.adminDashboard,
       {
-        method: SummaryApi.adminReviewSubmission.method,
+        method:
+          SummaryApi.adminDashboard.method,
+      },
+      fallback,
+    ),
+
+  submissions: (fallback) =>
+    requestOrFallback(
+      SummaryApi.adminSubmissions,
+      {
+        method:
+          SummaryApi.adminSubmissions.method,
+      },
+      fallback,
+    ),
+
+  reviewSubmission: (id, values) => {
+    const safeId = requireId(
+      id,
+      "Submission ID is required.",
+    );
+
+    return requestOrFallback(
+      `${appendId(
+        SummaryApi.adminReviewSubmission.url,
+        safeId,
+      )}/review`,
+      {
+        method:
+          SummaryApi.adminReviewSubmission
+            .method,
         body: JSON.stringify(values),
       },
-      { success: true },
-    ),
-  supportCases: (fallback) =>
-    requestOrFallback(SummaryApi.adminSupportCases, {}, fallback),
-  supportCase: (id, fallback) =>
-    requestOrFallback(`${SummaryApi.adminSupportCase.url}/${id}`, {}, fallback),
-  sendSupportMessage: (id, formData) =>
-    requestOrFallback(
-      `${SummaryApi.adminSupportMessage.url}/${id}/messages`,
       {
-        method: SummaryApi.adminSupportMessage.method,
+        success: true,
+      },
+    );
+  },
+
+  supportCases: (fallback) =>
+    requestOrFallback(
+      SummaryApi.adminSupportCases,
+      {
+        method:
+          SummaryApi.adminSupportCases.method,
+      },
+      fallback,
+    ),
+
+  supportCase: (id, fallback) => {
+    const safeId = requireId(
+      id,
+      "Support case ID is required.",
+    );
+
+    return requestOrFallback(
+      appendId(
+        SummaryApi.adminSupportCase.url,
+        safeId,
+      ),
+      {
+        method: "GET",
+      },
+      fallback,
+    );
+  },
+
+  sendSupportMessage: (
+    id,
+    formData,
+  ) => {
+    const safeId = requireId(
+      id,
+      "Support case ID is required.",
+    );
+
+    return requestOrFallback(
+      `${appendId(
+        SummaryApi.adminSupportMessage.url,
+        safeId,
+      )}/messages`,
+      {
+        method:
+          SummaryApi.adminSupportMessage
+            .method,
         body: formData,
       },
-      { success: true },
-    ),
-  verifyMedicalDocument: (caseId, documentId, values) =>
-    requestOrFallback(
-      `${SummaryApi.adminVerifyMedicalDocument.url}/${caseId}/documents/${documentId}/verify`,
       {
-        method: SummaryApi.adminVerifyMedicalDocument.method,
+        success: true,
+      },
+    );
+  },
+
+  verifyMedicalDocument: (
+    caseId,
+    documentId,
+    values,
+  ) => {
+    const safeCaseId = requireId(
+      caseId,
+      "Support case ID is required.",
+    );
+
+    const safeDocumentId = requireId(
+      documentId,
+      "Medical document ID is required.",
+    );
+
+    return requestOrFallback(
+      `${appendId(
+        SummaryApi.adminVerifyMedicalDocument
+          .url,
+        safeCaseId,
+      )}/documents/${encodeURIComponent(
+        safeDocumentId,
+      )}/verify`,
+      {
+        method:
+          SummaryApi
+            .adminVerifyMedicalDocument
+            .method,
         body: JSON.stringify(values),
       },
-      { success: true },
-    ),
+      {
+        success: true,
+      },
+    );
+  },
 
+  /*
+   * Get all missing-person reports for admin.
+   */
   missingReports: (fallback) =>
-    requestOrFallback(SummaryApi.missingAdminReports, {}, fallback),
-
-  missingReport: (id, fallback) =>
-    requestOrFallback(`${SummaryApi.missingReport.url}/${id}`, {}, fallback),
-
-  changeMissingStatus: (id, values) =>
     requestOrFallback(
-      `${SummaryApi.missingReportStatus.url}/${id}/status`,
+      SummaryApi.missingAdminReports,
       {
-        method: SummaryApi.missingReportStatus.method,
-        body: JSON.stringify(values),
+        method:
+          SummaryApi.missingAdminReports.method,
       },
-      { success: true },
+      fallback,
     ),
 
-  assignMissingAdmins: (id, values) =>
-    requestOrFallback(
-      `${SummaryApi.missingAssignAdmins.url}/${id}/assign`,
-      {
-        method: SummaryApi.missingAssignAdmins.method,
-        body: JSON.stringify(values),
-      },
-      { success: true },
-    ),
+  /*
+   * Get one missing-person report.
+   *
+   * missingReport is a function:
+   * SummaryApi.missingReport(reportId)
+   */
+  missingReport: (
+    reportId,
+    fallback,
+  ) => {
+    const safeReportId = requireId(
+      reportId,
+      "Missing-person report ID is required.",
+    );
 
-  changeSightingStatus: (reportId, sightingId, values) =>
-    requestOrFallback(
-      `${SummaryApi.missingSightingStatus.url}/${reportId}/sightings/${sightingId}/status`,
+    const api =
+      SummaryApi.missingReport(
+        safeReportId,
+      );
+
+    return requestOrFallback(
+      api,
       {
-        method: SummaryApi.missingSightingStatus.method,
+        method: api.method,
+      },
+      fallback,
+    );
+  },
+
+  /*
+   * Approve, reject, or request information.
+   *
+   * missingReportStatus is a function:
+   * SummaryApi.missingReportStatus(reportId)
+   */
+  changeMissingStatus: (
+    reportId,
+    values,
+  ) => {
+    const safeReportId = requireId(
+      reportId,
+      "Missing-person report ID is required.",
+    );
+
+    const api =
+      SummaryApi.missingReportStatus(
+        safeReportId,
+      );
+
+    return requestOrFallback(
+      api,
+      {
+        method: api.method,
         body: JSON.stringify(values),
       },
-      { success: true },
-    ),
+      {
+        success: true,
+      },
+    );
+  },
+
+  /*
+   * Assign admins to a missing-person report.
+   */
+  assignMissingAdmins: (
+    reportId,
+    values,
+  ) => {
+    const safeReportId = requireId(
+      reportId,
+      "Missing-person report ID is required.",
+    );
+
+    const api =
+      SummaryApi.missingAssignAdmins(
+        safeReportId,
+      );
+
+    return requestOrFallback(
+      api,
+      {
+        method: api.method,
+        body: JSON.stringify(values),
+      },
+      {
+        success: true,
+      },
+    );
+  },
+
+  /*
+   * Change the verification status of a sighting.
+   */
+  changeSightingStatus: (
+    reportId,
+    sightingId,
+    values,
+  ) => {
+    const safeReportId = requireId(
+      reportId,
+      "Missing-person report ID is required.",
+    );
+
+    const safeSightingId = requireId(
+      sightingId,
+      "Sighting ID is required.",
+    );
+
+    const api =
+      SummaryApi.missingSightingStatus(
+        safeReportId,
+        safeSightingId,
+      );
+
+    return requestOrFallback(
+      api,
+      {
+        method: api.method,
+        body: JSON.stringify(values),
+      },
+      {
+        success: true,
+      },
+    );
+  },
 
   archive: (fallback) =>
-    requestOrFallback(SummaryApi.adminArchive, {}, fallback),
-  publishArchive: (id, values) =>
     requestOrFallback(
-      `${SummaryApi.adminPublishArchive.url}/${id}/publish`,
+      SummaryApi.adminArchive,
       {
-        method: SummaryApi.adminPublishArchive.method,
+        method:
+          SummaryApi.adminArchive.method,
+      },
+      fallback,
+    ),
+
+  publishArchive: (id, values) => {
+    const safeId = requireId(
+      id,
+      "Archive record ID is required.",
+    );
+
+    return requestOrFallback(
+      `${appendId(
+        SummaryApi.adminPublishArchive.url,
+        safeId,
+      )}/publish`,
+      {
+        method:
+          SummaryApi.adminPublishArchive.method,
         body: JSON.stringify(values),
       },
-      { success: true },
-    ),
+      {
+        success: true,
+      },
+    );
+  },
 };
 
 export { unwrap };
