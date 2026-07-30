@@ -865,7 +865,6 @@ router.use("/", taxonomyRoutes);
 router.post("/signup", authLimiter, auth.signUp);
 router.post("/signin", authLimiter, auth.signIn);
 router.get("/user-details", authenticate, users.getMe);
-router.get("/userLogout", auth.logout);
 router.post("/userLogout", auth.logout);
 router.post("/forgot-password", authLimiter, auth.forgotPassword);
 router.post("/reset-password", authLimiter, auth.resetPassword);

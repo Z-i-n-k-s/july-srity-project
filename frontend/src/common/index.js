@@ -29,7 +29,7 @@ const SummaryApi = {
     "/api/reset-password",
     "POST",
   ),
-  logout_user: endpoint("/api/userLogout", "GET"),
+  logout_user: endpoint("/api/userLogout", "POST"),
 
   /* ------------------------------------------------------------------------ */
   /* User administration                                                      */
