@@ -1,207 +1,79 @@
 import React, { useState } from "react";
-import { FaTimes, FaCamera, FaUser, FaEnvelope, FaShieldAlt } from "react-icons/fa";
-import { FaUserLarge } from "react-icons/fa6";
-import SummaryApi from "../common";
+import { Camera, Mail, ShieldCheck, UserRound, X } from "lucide-react";
 import { toast } from "react-toastify";
+import SummaryApi from "../common";
 import imageTobase64 from "../helpers/imageTobase64";
+import { useDispatch } from "react-redux";
+import { setUserDetails } from "../store/userSlice";
+import { useLanguage } from "../context/LanguageContext";
 
-const ProfileDisplay = ({
-  name,
-  email,
-  role,
-  userId,
-  onClose,
-  profilePic,
-  callFunc,
-}) => {
-  const [newProfilePic, setNewProfilePic] = useState("");
-  const [imgError, setImgError] = useState(false);
+const ProfileDisplay = ({ onClose, name, email, role, userId, profilePic, callFunc }) => {
+  const [data, setData] = useState({ newname: name || "", newemail: email || "", newprofilepic: profilePic || "" });
   const [isLoading, setIsLoading] = useState(false);
+  const dispatch = useDispatch();
+  const { pick } = useLanguage();
 
-  const [data, setData] = useState({
-    userId: userId,
-    newemail: email,
-    newname: name,
-    newprofilepic: profilePic
-  });
-
-  const handleUploadPic = async (e) => {
-    const file = e.target.files[0];
+  const handleUploadPic = async (event) => {
+    const file = event.target.files?.[0];
     if (!file) return;
-
+    if (!file.type.startsWith("image/")) return toast.error("Please choose an image file.");
+    if (file.size > 5 * 1024 * 1024) return toast.error("Profile image must be under 5 MB.");
     try {
       const imagePic = await imageTobase64(file);
-      setData((prev) => ({
-        ...prev,
-        newprofilepic: imagePic
-      }));
-      setNewProfilePic(imagePic);
-      setImgError(false);
-    } catch (error) {
-      toast.error("Failed to upload image");
+      setData((prev) => ({ ...prev, newprofilepic: imagePic }));
+    } catch {
+      toast.error("Failed to preview image.");
     }
   };
 
   const updateUserProfile = async () => {
+    if (!data.newname.trim() || !data.newemail.trim()) return toast.error("Name and email are required.");
     setIsLoading(true);
     try {
-      const fetchResponse = await fetch(SummaryApi.updateProfile.url, {
+      const response = await fetch(SummaryApi.updateProfile.url, {
         method: SummaryApi.updateProfile.method,
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          userId: userId,
-          email: data.newemail,
-          name: data.newname,
-          profilePic: data.newprofilepic
-        })
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, email: data.newemail, name: data.newname, profilePic: data.newprofilepic }),
       });
-
-      const responseData = await fetchResponse.json();
-
-      if (responseData.success) {
-        toast.success(responseData.message);
-        onClose();
-        callFunc();
-      } else {
-        toast.error(responseData.message || "Failed to update profile");
-      }
+      const payload = await response.json();
+      if (!response.ok || payload?.error) throw new Error(payload?.message || "Failed to update profile.");
+      dispatch(setUserDetails(payload?.data || { _id: userId, name: data.newname, email: data.newemail, role, profilePic: data.newprofilepic }));
+      toast.success(payload?.message || "Profile updated.");
+      onClose();
+      callFunc?.();
     } catch (error) {
-      toast.error("Something went wrong");
+      toast.error(error.message);
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-      {/* Backdrop */}
-      <div 
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-        onClick={onClose}
-      ></div>
-
-      {/* Modal */}
-      <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-lg mx-auto overflow-hidden transform transition-all duration-300 scale-100">
-        {/* Header */}
-        <div className="relative bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-8 text-center">
-          <button
-            className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors duration-200"
-            onClick={onClose}
-          >
-            <FaTimes size={18} />
-          </button>
-          
-          <h2 className="text-2xl font-bold text-white mb-2">Profile Settings</h2>
-          <p className="text-blue-100 text-sm">Update your account information</p>
+    <div className="fixed inset-0 z-[120] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="profile-title">
+      <button type="button" className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} aria-label="Close profile settings" />
+      <div className="relative w-full max-w-lg overflow-hidden rounded-2xl border border-white/10 bg-ink-800 shadow-2xl">
+        <div className="border-b border-white/10 bg-gradient-to-r from-archive-amber/15 via-white/[0.03] to-archive-rose/10 px-6 py-6">
+          <button type="button" className="focus-ring absolute right-4 top-4 grid h-10 w-10 place-items-center rounded-xl border border-white/10 bg-black/15 text-archive-muted hover:text-white" onClick={onClose} aria-label="Close"><X className="h-5 w-5" /></button>
+          <p className="eyebrow">{pick("Account settings", "অ্যাকাউন্ট সেটিংস")}</p>
+          <h2 id="profile-title" className="mt-2 font-display text-3xl font-semibold">{pick("Profile Settings", "প্রোফাইল সেটিংস")}</h2>
         </div>
-
-        <div className="px-6 py-8">
-          {/* Profile Picture Section */}
-          <div className="flex flex-col items-center mb-8">
-            <div className="relative group">
-              <div className="relative w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-lg">
-                {data.newprofilepic && !imgError ? (
-                  <img
-                    src={data.newprofilepic}
-                    alt="Profile"
-                    className="w-full h-full object-cover"
-                    onError={() => setImgError(true)}
-                  />
-                ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
-                    <FaUserLarge className="w-10 h-10 text-white" />
-                  </div>
-                )}
-              </div>
-
-              {/* Upload Overlay */}
-              <label className="absolute inset-0 rounded-full cursor-pointer group-hover:bg-black/20 transition-colors duration-200 flex items-center justify-center">
-                <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                  <FaCamera className="w-5 h-5 text-white" />
-                </div>
-                <input
-                  type="file"
-                  className="hidden"
-                  accept="image/*"
-                  onChange={handleUploadPic}
-                />
-              </label>
+        <div className="p-6">
+          <div className="flex flex-col items-center">
+            <div className="group relative h-24 w-24 overflow-hidden rounded-full border-2 border-archive-amber/40 bg-ink-900">
+              {data.newprofilepic ? <img src={data.newprofilepic} alt="Profile preview" className="h-full w-full object-cover" /> : <div className="grid h-full w-full place-items-center text-archive-muted"><UserRound className="h-9 w-9" /></div>}
+              <label className="absolute inset-0 grid cursor-pointer place-items-center bg-black/0 transition hover:bg-black/45"><Camera className="h-5 w-5 opacity-0 transition group-hover:opacity-100" /><input type="file" accept="image/*" className="hidden" onChange={handleUploadPic} /></label>
             </div>
-            
-            <p className="text-xs text-slate-500 mt-3 text-center">
-              Click on avatar to change photo
-            </p>
+            <p className="mt-3 text-xs text-archive-muted">{pick("Choose a respectful profile image", "একটি উপযুক্ত প্রোফাইল ছবি নির্বাচন করুন")}</p>
           </div>
-
-          {/* Form Fields */}
-          <div className="space-y-6">
-            {/* Name Field */}
-            <div className="space-y-2">
-              <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
-                <FaUser className="w-4 h-4 text-slate-400" />
-                Full Name
-              </label>
-              <input
-                type="text"
-                value={data.newname}
-                onChange={(e) => setData({ ...data, newname: e.target.value })}
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200 outline-none"
-                placeholder="Enter your full name"
-              />
-            </div>
-
-            {/* Email Field */}
-            <div className="space-y-2">
-              <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
-                <FaEnvelope className="w-4 h-4 text-slate-400" />
-                Email Address
-              </label>
-              <input
-                type="email"
-                value={data.newemail}
-                onChange={(e) => setData({ ...data, newemail: e.target.value })}
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200 outline-none"
-                placeholder="Enter your email address"
-              />
-            </div>
-
-            {/* Role Field (Read-only) */}
-            <div className="space-y-2">
-              <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
-                <FaShieldAlt className="w-4 h-4 text-slate-400" />
-                Account Role
-              </label>
-              <div className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-slate-600 capitalize">
-                {role}
-              </div>
-            </div>
+          <div className="mt-7 space-y-5">
+            <label><span className="field-label inline-flex items-center gap-2"><UserRound className="h-4 w-4 text-archive-amber" />{pick("Full name", "পূর্ণ নাম")}</span><input value={data.newname} onChange={(e) => setData((current) => ({ ...current, newname: e.target.value }))} className="field-control" /></label>
+            <label><span className="field-label inline-flex items-center gap-2"><Mail className="h-4 w-4 text-archive-amber" />{pick("Email address", "ইমেইল ঠিকানা")}</span><input type="email" value={data.newemail} onChange={(e) => setData((current) => ({ ...current, newemail: e.target.value }))} className="field-control" /></label>
+            <div><span className="field-label inline-flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-archive-teal" />{pick("Account role", "অ্যাকাউন্ট ভূমিকা")}</span><div className="field-control capitalize text-archive-muted">{role}</div></div>
           </div>
-
-          {/* Action Buttons */}
-          <div className="flex gap-3 mt-8 pt-6 border-t border-slate-100">
-            <button
-              onClick={onClose}
-              className="flex-1 px-6 py-3 rounded-xl border border-slate-200 text-slate-700 font-medium hover:bg-slate-50 transition-colors duration-200"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={updateUserProfile}
-              disabled={isLoading}
-              className="flex-1 px-6 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 text-white font-medium hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isLoading ? (
-                <div className="flex items-center justify-center gap-2">
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                  Saving...
-                </div>
-              ) : (
-                "Save Changes"
-              )}
-            </button>
+          <div className="mt-8 flex flex-col-reverse gap-3 border-t border-white/10 pt-6 sm:flex-row sm:justify-end">
+            <button type="button" onClick={onClose} className="focus-ring rounded-xl border border-white/10 px-5 py-3 text-sm font-semibold text-[#C6C2BC] hover:bg-white/5">{pick("Cancel", "বাতিল")}</button>
+            <button type="button" onClick={updateUserProfile} disabled={isLoading} className="focus-ring rounded-xl bg-gradient-to-r from-archive-amber to-archive-copper px-5 py-3 text-sm font-semibold text-ink-950 shadow-amber disabled:opacity-50">{isLoading ? pick("Saving…", "সংরক্ষণ হচ্ছে…") : pick("Save Changes", "পরিবর্তন সংরক্ষণ")}</button>
           </div>
         </div>
       </div>

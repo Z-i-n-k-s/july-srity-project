@@ -1,9 +1,5 @@
-import React from 'react'
+import { Navigate } from "react-router-dom";
 
-const WalletPage = () => {
-  return (
-    <div>WalletPage</div>
-  )
-}
+const WalletPage = () => <Navigate to="/account" replace />;
 
-export default WalletPage
+export default WalletPage;

@@ -1,89 +1,44 @@
-// src/pages/ForgotPassword.js
 import React, { useState } from "react";
+import { Loader2, MailCheck, Send } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "react-toastify";
 import SummaryApi from "../common";
-import forgotIcon from "../assest/forgotpasswnedSend.gif";
+import AuthShell from "../components/auth/AuthShell";
+import { useLanguage } from "../context/LanguageContext";
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [sent, setSent] = useState(false);
+  const { pick } = useLanguage();
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setSubmitting(true);
     try {
-      const response = await fetch(SummaryApi.forgotPassword.url, {
-        method: SummaryApi.forgotPassword.method,
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-
-      const result = await response.json();
-
-      if (result.success) {
-        toast.success(result.message || "Reset link sent to your email!");
-        setEmail("");
-      } else {
-        toast.error(result.message || "Something went wrong");
-      }
-    } catch (error) {
-      toast.error("Error sending reset link");
-    }
+      const response = await fetch(SummaryApi.forgotPassword.url, { method: SummaryApi.forgotPassword.method, headers: { "content-type": "application/json" }, body: JSON.stringify({ email }) });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok || payload?.error || payload?.success === false) throw new Error(payload?.message || pick("Unable to send the reset link.", "রিসেট লিংক পাঠানো যায়নি।"));
+      setSent(true);
+      toast.success(payload?.message || pick("Reset instructions were sent.", "রিসেট নির্দেশনা পাঠানো হয়েছে।"));
+    } catch (error) { toast.error(error.message || pick("Unable to send the reset link.", "রিসেট লিংক পাঠানো যায়নি।")); }
+    finally { setSubmitting(false); }
   };
 
   return (
-    <section className="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 via-amber-50/30 to-gray-50 px-4">
-      <div className="bg-white/90 backdrop-blur-md shadow-xl rounded-2xl p-8 w-full max-w-md">
-        
-        {/* Icon */}
-        <div className="w-24 h-24 mx-auto mb-4">
-          <img
-            src={forgotIcon}
-            alt="forgot password"
-            className="w-full h-full object-contain"
-          />
-        </div>
-
-        {/* Heading */}
-        <h2 className="text-2xl font-bold text-center text-gray-800 mb-6">
-          Forgot Password?
-        </h2>
-        <p className="text-center text-gray-600 mb-6">
-          Enter your registered email and we’ll send you a reset link.
-        </p>
-
-        {/* Form */}
-        <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
-          <div>
-            <label className="block mb-1 font-medium text-gray-700">Email</label>
-            <input
-              type="email"
-              placeholder="Enter your email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 bg-gray-100 rounded-xl outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition-all"
-              required
-            />
-          </div>
-
-          {/* Button */}
-          <button
-            type="submit"
-            className="bg-amber-500 hover:bg-amber-600 text-white font-semibold py-3 rounded-full transition-transform transform hover:scale-105 shadow-md"
-          >
-            Send Reset Link
-          </button>
-        </form>
-
-        {/* Back to login */}
-        <p className="text-center text-gray-600 mt-6">
-          Remembered your password?{" "}
-          <Link to="/login" className="text-amber-600 hover:underline font-medium">
-            Back to Login
-          </Link>
-        </p>
-      </div>
-    </section>
+    <AuthShell
+      compact
+      eyebrow={pick("Account recovery", "অ্যাকাউন্ট পুনরুদ্ধার")}
+      title={pick("Reset access securely.", "নিরাপদভাবে প্রবেশাধিকার ফিরিয়ে নিন।")}
+      description={pick("Enter your registered email. For privacy, the confirmation message does not reveal whether an account exists.", "নিবন্ধিত ইমেইল লিখুন। গোপনীয়তার জন্য নিশ্চিতকরণ বার্তায় অ্যাকাউন্ট আছে কি না প্রকাশ করা হবে না।")}
+      footer={<Link to="/login" className="font-semibold text-archive-amber hover:text-[#E7AE6D]">{pick("Return to sign in", "সাইন ইনে ফিরুন")}</Link>}
+    >
+      {sent ? (
+        <div className="py-4 text-center"><span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-archive-teal/15 text-archive-teal"><MailCheck className="h-7 w-7" /></span><h2 className="mt-5 font-display text-2xl font-semibold text-white">{pick("Check your email", "ইমেইল দেখুন")}</h2><p className="mt-3 text-sm leading-6 text-archive-muted">{pick("If the address is registered, password reset instructions will arrive shortly.", "ঠিকানাটি নিবন্ধিত হলে শিগগিরই পাসওয়ার্ড রিসেট নির্দেশনা পৌঁছাবে।")}</p><button type="button" onClick={() => setSent(false)} className="focus-ring mt-5 rounded-lg px-3 py-2 text-sm font-semibold text-archive-amber hover:bg-archive-amber/10">{pick("Use another email", "অন্য ইমেইল ব্যবহার করুন")}</button></div>
+      ) : (
+        <form className="grid gap-5" onSubmit={handleSubmit}><div><label htmlFor="recovery-email" className="field-label">{pick("Email address", "ইমেইল ঠিকানা")}</label><input id="recovery-email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" required className="field-control" placeholder="name@example.com" /></div><button type="submit" disabled={submitting} className="focus-ring inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-archive-amber to-archive-copper px-5 font-semibold text-ink-950 transition hover:-translate-y-0.5 hover:brightness-110 disabled:opacity-60">{submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}{pick(submitting ? "Sending…" : "Send reset link", submitting ? "পাঠানো হচ্ছে…" : "রিসেট লিংক পাঠান")}</button></form>
+      )}
+    </AuthShell>
   );
 };
 

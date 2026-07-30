@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 520">
+  <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#171925"/><stop offset="1" stop-color="#21151F"/></linearGradient></defs>
+  <rect width="800" height="520" fill="url(#g)"/>
+  <path d="M320 155h160a24 24 0 0 1 24 24v176a24 24 0 0 1-24 24H320a24 24 0 0 1-24-24V179a24 24 0 0 1 24-24Z" fill="none" stroke="#D79A54" stroke-width="8" opacity=".7"/>
+  <path d="m322 340 63-68 45 42 36-36 36 62" fill="none" stroke="#F4F1EA" stroke-width="8" opacity=".55"/>
+  <circle cx="445" cy="220" r="22" fill="#B96776" opacity=".75"/>
+  <text x="400" y="430" text-anchor="middle" fill="#C6C2BC" font-family="Arial" font-size="22">Archive image unavailable</text>
+</svg>
