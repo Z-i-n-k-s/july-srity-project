@@ -5,22 +5,22 @@ import PageHeader from "../../components/ui/PageHeader";
 import Button from "../../components/ui/Button";
 import ImageWithFallback from "../../components/ui/ImageWithFallback";
 import StatusBadge from "../../components/ui/StatusBadge";
-import { missingPersons as fallbackPersons } from "../../data/landingData";
 import { publicApi, unwrap } from "../../lib/api";
 import { useLanguage } from "../../context/LanguageContext";
+import { filterPublicArchiveRecords } from "../../lib/archiveVisibility";
 
 export default function MissingPersonsPage() {
-  const [persons, setPersons] = useState(fallbackPersons);
+  const [persons, setPersons] = useState([]);
   const [query, setQuery] = useState("");
   const [location, setLocation] = useState("All locations");
   const { pick } = useLanguage();
 
   useEffect(() => {
     let active = true;
-    publicApi.missingPersons(fallbackPersons).then((payload) => {
+    publicApi.missingPersons([]).then((payload) => {
       if (!active) return;
       const data = unwrap(payload);
-      if (Array.isArray(data)) setPersons(data);
+      if (Array.isArray(data)) setPersons(filterPublicArchiveRecords(data));
     });
     return () => {
       active = false;
@@ -29,7 +29,7 @@ export default function MissingPersonsPage() {
 
   const filtered = useMemo(
     () =>
-      persons.filter((person) => {
+      filterPublicArchiveRecords(persons).filter((person) => {
         const matches =
           `${person.name || ""} ${person.lastSeenLocation || ""} ${person.clothing || ""}`
             .toLowerCase()

@@ -109,3 +109,25 @@ textarea.field-control { line-height: 1.65; }
     transition-duration: .01ms !important;
   }
 }
+
+
+/* The Google Website Translator runs invisibly behind the existing language switch. */
+.google-translate-host {
+  position: fixed;
+  left: -10000px;
+  top: -10000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  pointer-events: none;
+}
+.goog-te-banner-frame.skiptranslate,
+iframe.goog-te-banner-frame,
+#goog-gt-tt,
+.goog-te-balloon-frame { display: none !important; }
+html.translated-ltr body,
+html.translated-rtl body { top: 0 !important; }
+.goog-text-highlight {
+  background: transparent !important;
+  box-shadow: none !important;
+}

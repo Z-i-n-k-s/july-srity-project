@@ -20,8 +20,8 @@ import {
   XCircle,
 } from "lucide-react";
 import { adminApi, unwrap } from "../../lib/api";
-import { adminMissingFallback } from "../../data/adminData";
 import ImageWithFallback from "../../components/ui/ImageWithFallback";
+import { GoogleMapLocationPreview } from "../../components/maps/GoogleMapLocationPicker";
 import StatusBadge from "../../components/ui/StatusBadge";
 import { useToast } from "../../context/ToastContext";
 import { useLanguage } from "../../context/LanguageContext";
@@ -252,7 +252,7 @@ function valueOrFallback(value, fallback = "—") {
 }
 
 export default function AdminMissingReports() {
-  const [items, setItems] = useState(adminMissingFallback);
+  const [items, setItems] = useState([]);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [selected, setSelected] = useState(null);
@@ -262,6 +262,8 @@ export default function AdminMissingReports() {
 
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
+  const [reviewStep, setReviewStep] = useState(1);
+  const [savingSightingId, setSavingSightingId] = useState("");
 
   const toast = useToast();
   const { pick } = useLanguage();
@@ -273,9 +275,7 @@ export default function AdminMissingReports() {
       setLoadingList(true);
 
       try {
-        const payload = await adminApi.missingReports(
-          adminMissingFallback,
-        );
+        const payload = await adminApi.missingReports();
 
         if (!active) return;
 
@@ -433,6 +433,7 @@ export default function AdminMissingReports() {
 
       setSelected(normalizedDetails);
       setNote("");
+      setReviewStep(1);
     } catch (error) {
       toast.error(
         error.message ||
@@ -503,6 +504,20 @@ export default function AdminMissingReports() {
     report?.lastSeen?.addressDescription ||
     report?.lastSeenLocation ||
     "—";
+
+  const lastSeenLatitude =
+    report?.lastSeen?.locationId?.latitude ??
+    report?.lastSeen?.latitude ??
+    report?.lastSeenLatitude ??
+    report?.lastSeen?.locationId?.coordinates?.[1] ??
+    null;
+
+  const lastSeenLongitude =
+    report?.lastSeen?.locationId?.longitude ??
+    report?.lastSeen?.longitude ??
+    report?.lastSeenLongitude ??
+    report?.lastSeen?.locationId?.coordinates?.[0] ??
+    null;
 
   const publicDescription =
     report?.person?.publicDescription ||
@@ -630,6 +645,52 @@ export default function AdminMissingReports() {
       );
     } finally {
       setSaving(false);
+    }
+  };
+
+
+  const goToReviewStep = (step) => {
+    setReviewStep(step);
+    window.requestAnimationFrame(() => {
+      document.getElementById(`missing-review-step-${step}`)?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    });
+  };
+
+  const reviewSighting = async (sighting, status) => {
+    const databaseId = getReportId(report) || getReportId(selected);
+    const sightingId = sighting?._id || sighting?.id;
+
+    if (!databaseId || !sightingId || savingSightingId) {
+      if (!sightingId) toast.error(pick("The sighting ID is missing.", "দেখা-সংক্রান্ত তথ্যের আইডি পাওয়া যায়নি।"));
+      return;
+    }
+
+    setSavingSightingId(String(sightingId));
+    try {
+      await adminApi.changeSightingStatus(databaseId, sightingId, {
+        status,
+        note: note.trim() || undefined,
+      });
+
+      setSelected((current) => ({
+        ...current,
+        sightings: (current?.sightings || []).map((item) =>
+          String(item?._id || item?.id) === String(sightingId)
+            ? { ...item, status }
+            : item,
+        ),
+      }));
+
+      toast.success(status === "VERIFIED"
+        ? pick("Sighting verified.", "দেখা-সংক্রান্ত তথ্য যাচাই করা হয়েছে।")
+        : pick("Sighting rejected.", "দেখা-সংক্রান্ত তথ্য প্রত্যাখ্যান করা হয়েছে।"));
+    } catch (error) {
+      toast.error(error?.message || pick("The sighting could not be updated.", "দেখা-সংক্রান্ত তথ্য হালনাগাদ করা যায়নি।"));
+    } finally {
+      setSavingSightingId("");
     }
   };
 
@@ -1076,6 +1137,31 @@ export default function AdminMissingReports() {
               </div>
             </header>
 
+            <nav className="shrink-0 border-b border-white/[0.08] bg-black/15 px-5 py-3 sm:px-7" aria-label={pick("Missing report review steps", "নিখোঁজ রিপোর্ট পর্যালোচনার ধাপ")}>
+              <div className="grid gap-2 sm:grid-cols-4">
+                {[
+                  [1, pick("Reporter & consent", "রিপোর্টার ও সম্মতি")],
+                  [2, pick("Person & last seen", "ব্যক্তি ও শেষ দেখা")],
+                  [3, pick("Sightings", "দেখা-সংক্রান্ত তথ্য")],
+                  [4, pick("Decision", "সিদ্ধান্ত")],
+                ].map(([step, label]) => (
+                  <button
+                    key={step}
+                    type="button"
+                    onClick={() => goToReviewStep(step)}
+                    className={`focus-ring flex items-center gap-2 rounded-xl border px-3 py-2 text-left text-xs font-semibold transition ${
+                      reviewStep === step
+                        ? "border-archive-amber/35 bg-archive-amber/10 text-archive-amber"
+                        : "border-white/10 bg-white/[0.025] text-archive-muted hover:text-white"
+                    }`}
+                  >
+                    <span className={`grid h-6 w-6 shrink-0 place-items-center rounded-full ${reviewStep >= step ? "bg-archive-amber text-ink-950" : "bg-white/10 text-archive-muted"}`}>{step}</span>
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </nav>
+
             {/* Modal content */}
             <div className="min-h-0 flex-1 overflow-y-auto">
               <div className="grid lg:grid-cols-[360px_1fr]">
@@ -1109,7 +1195,7 @@ export default function AdminMissingReports() {
                     </div>
                   </div>
 
-                  <div className="mt-5 rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4">
+                  <div id="missing-review-step-1" className="mt-5 scroll-mt-4 rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4">
                     <div className="flex items-center gap-2">
                       <UserRound className="h-4 w-4 text-archive-amber" />
 
@@ -1148,7 +1234,7 @@ export default function AdminMissingReports() {
                 </aside>
 
                 <main className="p-5 sm:p-7">
-                  <section>
+                  <section id="missing-review-step-2" className="scroll-mt-4">
                     <div className="flex flex-wrap items-start justify-between gap-4">
                       <div>
                         <p className="eyebrow">
@@ -1199,6 +1285,15 @@ export default function AdminMissingReports() {
                         value={lastSeenLocation}
                       />
                     </div>
+
+                    {lastSeenLocation !== "—" && (
+                      <GoogleMapLocationPreview
+                        location={lastSeenLocation}
+                        latitude={lastSeenLatitude}
+                        longitude={lastSeenLongitude}
+                        className="mt-4"
+                      />
+                    )}
                   </section>
 
                   <section className="mt-7 grid gap-4 xl:grid-cols-2">
@@ -1251,7 +1346,7 @@ export default function AdminMissingReports() {
                   </section>
 
                   {sightings.length > 0 && (
-                    <section className="mt-7">
+                    <section id="missing-review-step-3" className="mt-7 scroll-mt-4">
                       <div className="flex items-center justify-between gap-3">
                         <div>
                           <p className="eyebrow">
@@ -1302,9 +1397,27 @@ export default function AdminMissingReports() {
                                   </p>
                                 </div>
 
-                                <StatusBadge
-                                  status={sighting.status}
-                                />
+                                <div className="flex flex-wrap items-center justify-end gap-2">
+                                  <StatusBadge status={sighting.status} />
+                                  <button
+                                    type="button"
+                                    disabled={Boolean(savingSightingId)}
+                                    onClick={() => reviewSighting(sighting, "VERIFIED")}
+                                    className="focus-ring inline-flex items-center gap-1.5 rounded-lg border border-archive-teal/25 bg-archive-teal/10 px-2.5 py-1.5 text-[11px] font-semibold text-archive-teal disabled:opacity-50"
+                                  >
+                                    {savingSightingId === String(sighting._id || sighting.id) ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+                                    {pick("Verify", "যাচাই")}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    disabled={Boolean(savingSightingId)}
+                                    onClick={() => reviewSighting(sighting, "REJECTED")}
+                                    className="focus-ring inline-flex items-center gap-1.5 rounded-lg border border-archive-rose/25 bg-archive-rose/10 px-2.5 py-1.5 text-[11px] font-semibold text-archive-rose disabled:opacity-50"
+                                  >
+                                    <XCircle className="h-3.5 w-3.5" />
+                                    {pick("Reject", "প্রত্যাখ্যান")}
+                                  </button>
+                                </div>
                               </div>
 
                               <p className="mt-3 text-sm leading-6 text-[#C6C2BC]">
@@ -1316,6 +1429,15 @@ export default function AdminMissingReports() {
                                   ),
                                 )}
                               </p>
+
+                              {(sighting.locationDescription || sighting.locationId?.name || sighting.location) && (
+                                <GoogleMapLocationPreview
+                                  location={sighting.locationDescription || sighting.locationId?.name || sighting.location}
+                                  latitude={sighting.latitude ?? sighting.locationId?.latitude ?? sighting.locationId?.coordinates?.[1]}
+                                  longitude={sighting.longitude ?? sighting.locationId?.longitude ?? sighting.locationId?.coordinates?.[0]}
+                                  className="mt-4"
+                                />
+                              )}
                             </div>
                           ),
                         )}
@@ -1323,7 +1445,7 @@ export default function AdminMissingReports() {
                     </section>
                   )}
 
-                  <section className="mt-7 rounded-2xl border border-archive-amber/15 bg-archive-amber/[0.035] p-5">
+                  <section id="missing-review-step-4" className="mt-7 scroll-mt-4 rounded-2xl border border-archive-amber/15 bg-archive-amber/[0.035] p-5">
                     <label className="block">
                       <span className="field-label">
                         {pick(
@@ -1366,6 +1488,24 @@ export default function AdminMissingReports() {
             {/* Modal actions */}
             <footer className="shrink-0 border-t border-white/[0.08] bg-[#10141C]/95 px-5 py-4 backdrop-blur sm:px-7">
               <div className="flex flex-col-reverse gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    disabled={reviewStep === 1 || saving}
+                    onClick={() => goToReviewStep(Math.max(1, reviewStep - 1))}
+                    className="focus-ring rounded-xl border border-white/10 bg-white/[0.025] px-4 py-3 text-sm font-semibold text-archive-muted disabled:opacity-35"
+                  >
+                    {pick("Previous step", "আগের ধাপ")}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={reviewStep === 4 || saving}
+                    onClick={() => goToReviewStep(Math.min(4, reviewStep + 1))}
+                    className="focus-ring rounded-xl border border-archive-amber/25 bg-archive-amber/10 px-4 py-3 text-sm font-semibold text-archive-amber disabled:opacity-35"
+                  >
+                    {pick("Next step", "পরের ধাপ")}
+                  </button>
+                </div>
                 <button
                   type="button"
                   disabled={saving}

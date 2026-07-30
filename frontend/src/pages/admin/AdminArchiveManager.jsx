@@ -13,7 +13,6 @@ import {
   VolumeX,
 } from "lucide-react";
 import { adminApi, unwrap } from "../../lib/api";
-import { adminArchiveFallback } from "../../data/adminData";
 import ImageWithFallback from "../../components/ui/ImageWithFallback";
 import StatusBadge from "../../components/ui/StatusBadge";
 import { useToast } from "../../context/ToastContext";
@@ -240,7 +239,7 @@ function VideoPlayer({ item }) {
 // ---------------------------------------------------------------------------
 
 export default function AdminArchiveManager() {
-  const [items, setItems] = useState(adminArchiveFallback);
+  const [items, setItems] = useState([]);
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState(null);
   const [publishNote, setPublishNote] = useState("");
@@ -249,10 +248,15 @@ export default function AdminArchiveManager() {
 
   useEffect(() => {
     let active = true;
-    adminApi.archive(adminArchiveFallback).then((payload) => {
+    adminApi.archive().then((payload) => {
       if (!active) return;
       const data = unwrap(payload);
       if (Array.isArray(data)) setItems(data);
+    }).catch((error) => {
+      if (active) {
+        setItems([]);
+        toast.error(error.message || pick("Unable to load archive records.", "আর্কাইভ রেকর্ড লোড করা যায়নি।"));
+      }
     });
     return () => { active = false; };
   }, []);

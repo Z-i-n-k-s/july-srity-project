@@ -7,6 +7,7 @@ import ImageWithFallback from "../../components/ui/ImageWithFallback";
 import StatusBadge from "../../components/ui/StatusBadge";
 import { featuredArchive } from "../../data/landingData";
 import { publicApi, unwrap } from "../../lib/api";
+import { filterPublicArchiveRecords } from "../../lib/archiveVisibility";
 import { useLanguage } from "../../context/LanguageContext";
 
 const types = ["All", "Photograph", "Video", "Testimony", "Document", "Story", "Timeline"];
@@ -81,7 +82,7 @@ export default function ArchivePage() {
           : initialType === "documents"
             ? "Document"
             : "All";
-  const [records, setRecords] = useState(featuredArchive);
+  const [records, setRecords] = useState(filterPublicArchiveRecords(featuredArchive));
   const [query, setQuery] = useState("");
   const [type, setType] = useState(mappedInitial);
   const [location, setLocation] = useState("All locations");
@@ -95,7 +96,7 @@ export default function ArchivePage() {
       .then((payload) => {
         if (!active) return;
         const data = unwrap(payload);
-        if (Array.isArray(data)) setRecords(data);
+        if (Array.isArray(data)) setRecords(filterPublicArchiveRecords(data));
       })
       .finally(() => active && setLoading(false));
     return () => { active = false; };
@@ -103,7 +104,7 @@ export default function ArchivePage() {
 
   const items = useMemo(
     () =>
-      records.filter((item) => {
+      filterPublicArchiveRecords(records).filter((item) => {
         const tags = Array.isArray(item.tags) ? item.tags : [];
         const matchesQuery =
           `${item.title || ""} ${item.description || item.summary || ""} ${item.location || ""} ${tags.join(" ")}`

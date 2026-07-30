@@ -6,12 +6,14 @@ import { cn } from "../../lib/utils";
 
 export default function Modal({ open, onClose, title, description, children, size = "md" }) {
   const panelRef = useRef(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
   useScrollLock(open);
 
   useEffect(() => {
     if (!open) return undefined;
     const previous = document.activeElement;
-    const onKey = (event) => event.key === "Escape" && onClose();
+    const onKey = (event) => event.key === "Escape" && onCloseRef.current?.();
     document.addEventListener("keydown", onKey);
     const timer = window.setTimeout(() => panelRef.current?.focus(), 30);
     return () => {
@@ -19,7 +21,7 @@ export default function Modal({ open, onClose, title, description, children, siz
       window.clearTimeout(timer);
       previous?.focus?.();
     };
-  }, [open, onClose]);
+  }, [open]);
 
   const widths = { sm: "max-w-lg", md: "max-w-2xl", lg: "max-w-4xl" };
 

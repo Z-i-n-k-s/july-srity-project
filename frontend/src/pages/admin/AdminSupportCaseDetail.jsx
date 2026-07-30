@@ -1,6 +1,5 @@
 import {
   useEffect,
-  useMemo,
   useRef,
   useState,
 } from "react";
@@ -13,6 +12,7 @@ import {
   Loader2,
   LockKeyhole,
   Paperclip,
+  PauseCircle,
   Send,
   ShieldAlert,
   UserRound,
@@ -30,8 +30,6 @@ import {
   unwrap,
 } from "../../lib/api";
 
-import { adminSupportFallback } from "../../data/adminData";
-
 import AdminFilePreview from "../../components/admin/AdminFilePreview";
 import StatusBadge from "../../components/ui/StatusBadge";
 
@@ -39,6 +37,7 @@ import { useToast } from "../../context/ToastContext";
 import { useLanguage } from "../../context/LanguageContext";
 
 import useFilePreview from "../../hooks/useFilePreview";
+import { applySupportRoomOverride, isSupportRoomStopped, SUPPORT_ROOM_EVENT } from "../../lib/supportRoomState";
 
 const MESSAGE_REFRESH_INTERVAL = 2500;
 
@@ -216,6 +215,8 @@ const mergeSupportCase = (
   currentCase,
   incomingCase
 ) => {
+  currentCase = currentCase || {};
+
   if (
     !incomingCase ||
     typeof incomingCase !== "object"
@@ -263,33 +264,9 @@ const mergeSupportCase = (
 export default function AdminSupportCaseDetail() {
   const { caseId } = useParams();
 
-  const fallback = useMemo(() => {
-    return (
-      adminSupportFallback.find(
-        (item) =>
-          String(item.id || item._id) ===
-          String(caseId)
-      ) ||
-      adminSupportFallback[0] || {
-        id: caseId,
-        title: "Support case",
-        summary: "",
-        status: "Pending",
-        priority: "Normal",
-        category: "General support",
-        requester: "Unknown requester",
-        assignedAdmin: "Not assigned",
-        location: "Not provided",
-        hospital: "Not provided",
-        messages: [],
-        documents: [],
-        progress: [],
-      }
-    );
-  }, [caseId]);
-
-  const [caseData, setCaseData] =
-    useState(fallback);
+  const [caseData, setCaseData] = useState(null);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
 
   const [message, setMessage] =
     useState("");
@@ -339,11 +316,7 @@ export default function AdminSupportCaseDetail() {
       }
 
       try {
-        const payload =
-          await adminApi.supportCase(
-            caseId,
-            initial ? fallback : undefined
-          );
+        const payload = await adminApi.supportCase(caseId);
 
         if (!active) {
           return;
@@ -353,13 +326,18 @@ export default function AdminSupportCaseDetail() {
           getSupportCaseFromPayload(payload);
 
         if (!incomingCase) {
+          if (initial) setLoadError(pick("The support case could not be found.", "সহায়তা কেসটি পাওয়া যায়নি।"));
           return;
         }
 
+        if (initial) setLoadError("");
+
         setCaseData((current) =>
-          mergeSupportCase(
-            current,
-            incomingCase
+          applySupportRoomOverride(
+            mergeSupportCase(
+              current,
+              incomingCase
+            )
           )
         );
       } catch (error) {
@@ -371,6 +349,10 @@ export default function AdminSupportCaseDetail() {
           "Unable to refresh support case:",
           error
         );
+
+        if (initial) {
+          setLoadError(error?.message || pick("Unable to load the support room.", "সহায়তা কক্ষ লোড করা যায়নি।"));
+        }
 
         if (showError) {
           toast.error(
@@ -386,6 +368,7 @@ export default function AdminSupportCaseDetail() {
 
         if (active) {
           setRefreshing(false);
+          if (initial) setInitialLoading(false);
         }
       }
     };
@@ -435,7 +418,16 @@ export default function AdminSupportCaseDetail() {
     // toast and pick are intentionally omitted because
     // some context providers recreate them on each render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [caseId, fallback]);
+  }, [caseId]);
+
+  useEffect(() => {
+    const handleRoomOverride = () => {
+      setCaseData((current) => current ? applySupportRoomOverride(current) : current);
+    };
+
+    window.addEventListener(SUPPORT_ROOM_EVENT, handleRoomOverride);
+    return () => window.removeEventListener(SUPPORT_ROOM_EVENT, handleRoomOverride);
+  }, []);
 
   /*
    * Scroll to the latest message safely.
@@ -458,7 +450,7 @@ export default function AdminSupportCaseDetail() {
     return () => {
       window.cancelAnimationFrame(frameId);
     };
-  }, [caseData.messages?.length]);
+  }, [caseData?.messages?.length]);
 
   /*
    * Remove locally-created attachment URLs.
@@ -585,6 +577,11 @@ export default function AdminSupportCaseDetail() {
     event.preventDefault();
 
     const trimmedMessage = message.trim();
+
+    if (roomStopped) {
+      toast.warning(pick("This support room has been stopped.", "এই সহায়তা কক্ষটি বন্ধ করা হয়েছে।"));
+      return;
+    }
 
     if (
       !trimmedMessage &&
@@ -803,6 +800,33 @@ export default function AdminSupportCaseDetail() {
     replyFormRef.current?.requestSubmit();
   };
 
+  if (initialLoading) {
+    return (
+      <div className="grid min-h-[55vh] place-items-center">
+        <div className="text-center">
+          <Loader2 className="mx-auto h-9 w-9 animate-spin text-archive-teal" />
+          <p className="mt-4 text-sm text-archive-muted">{pick("Loading support case…", "সহায়তা কেস লোড হচ্ছে…")}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!caseData) {
+    return (
+      <div className="space-y-6">
+        <Link to="/admin-panel/support-cases" className="focus-ring inline-flex items-center gap-2 rounded-lg text-sm font-semibold text-archive-amber">
+          <ArrowLeft className="h-4 w-4" />
+          {pick("Back to support cases", "সহায়তা কেসে ফিরুন")}
+        </Link>
+        <section className="admin-card text-center">
+          <ShieldAlert className="mx-auto h-10 w-10 text-archive-rose" />
+          <h2 className="mt-4 font-display text-3xl font-semibold">{pick("Support case unavailable", "সহায়তা কেস পাওয়া যাচ্ছে না")}</h2>
+          <p className="mt-3 text-sm text-archive-muted">{loadError || pick("No case data was returned by the backend.", "ব্যাকএন্ড থেকে কোনো কেস তথ্য পাওয়া যায়নি।")}</p>
+        </section>
+      </div>
+    );
+  }
+
   const documents = ensureArray(
     caseData.documents
   );
@@ -814,6 +838,8 @@ export default function AdminSupportCaseDetail() {
   const messages = ensureArray(
     caseData.messages
   );
+
+  const roomStopped = isSupportRoomStopped(caseData);
 
   return (
     <div className="space-y-6">
@@ -1239,6 +1265,19 @@ export default function AdminSupportCaseDetail() {
             <div ref={endRef} />
           </div>
 
+          {roomStopped ? (
+            <div className="border-t border-white/10 p-5">
+              <div className="rounded-2xl border border-archive-rose/25 bg-archive-rose/[0.07] p-5 text-center">
+                <PauseCircle className="mx-auto h-8 w-8 text-archive-rose" />
+                <h4 className="mt-3 font-display text-2xl font-semibold text-white">
+                  {pick("This support room has been stopped", "এই সহায়তা কক্ষটি বন্ধ করা হয়েছে")}
+                </h4>
+                <p className="mt-3 text-sm leading-6 text-[#DAB8BE]">
+                  {caseData.stoppedReason || caseData.stopReason || pick("Previous messages remain visible, but new messages cannot be sent.", "আগের বার্তাগুলো দেখা যাবে, তবে নতুন বার্তা পাঠানো যাবে না।")}
+                </p>
+              </div>
+            </div>
+          ) : (
           <form
             ref={replyFormRef}
             onSubmit={sendReply}
@@ -1385,6 +1424,7 @@ export default function AdminSupportCaseDetail() {
               )}
             </div>
           </form>
+          )}
         </section>
       </div>
     </div>
