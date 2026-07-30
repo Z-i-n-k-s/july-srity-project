@@ -88,8 +88,8 @@ app.use(
   })
 );
 
-app.use(express.json({ limit: "2mb" }));
-app.use(express.urlencoded({ extended: true, limit: "2mb" }));
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(cookieParser());
 app.use(csrfOriginGuard);
 
@@ -164,8 +164,11 @@ app.use("/api", ensureDatabase, apiRouter);
 app.use(notFound);
 app.use(errorHandler);
 
+
+
 async function startServer() {
   await connectDB();
+  
 
   const port = Number(process.env.PORT) || 8080;
 

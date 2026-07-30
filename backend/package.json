@@ -5,8 +5,8 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "dev": "nodemon --exec \"node --require C:/node-dns-fix.cjs\" index.js",
-    "check": "node scripts/check-syntax.js && node scripts/check-load.js",
+    "dev": "nodemon index.js",
+    "check": "node scripts/check-syntax.js && node scripts/check-load.js && node scripts/check-frontend-contract.js",
     "test": "npm run check"
   },
   "engines": {

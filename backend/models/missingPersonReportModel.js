@@ -78,7 +78,7 @@ const missingPersonReportSchema = new mongoose.Schema(
     profileMediaId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "MediaAsset",
-      required: true,
+      default: null,
     },
     lastSeen: {
       type: lastSeenSchema,

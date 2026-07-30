@@ -77,9 +77,10 @@ const mongoose = {
 };
 
 function multer() {
-  return { single: () => middleware };
+  return { single: () => middleware, array: () => middleware, fields: () => middleware, none: () => middleware };
 }
 multer.memoryStorage = () => ({});
+multer.diskStorage = () => ({});
 multer.MulterError = class MulterError extends Error {};
 
 const stubs = {
@@ -92,9 +93,11 @@ const stubs = {
   multer,
   bcryptjs: { hash: async () => "hash", compare: async () => true },
   jsonwebtoken: { sign: () => "token", verify: () => ({ sub: "id" }) },
-  cloudinary: { v2: { config() {}, uploader: { upload_stream() {}, destroy: async () => ({}) } } },
+  cloudinary: { v2: { config() {}, uploader: { upload_stream: () => ({ end() {} }), upload(_path, _options, callback) { callback(null, { public_id: "id", secure_url: "url" }); }, upload_large(_path, _options, callback) { callback(null, { public_id: "id", secure_url: "url" }); }, destroy: async () => ({}) } } },
   nodemailer: { createTransport: () => ({ sendMail: async () => ({ messageId: "test" }) }) },
   dotenv: { config: () => ({}) },
+  "swagger-jsdoc": () => ({ openapi: "3.0.3", paths: {} }),
+  "swagger-ui-express": { serve: middleware, setup: () => middleware },
 };
 
 const originalLoad = Module._load;

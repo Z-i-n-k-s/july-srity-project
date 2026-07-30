@@ -11,4 +11,12 @@ const searchUserByEmail = asyncHandler(async (req, res) => {
   return sendSuccess(res, { message: "User found.", data: user });
 });
 
-module.exports = { searchUserByEmail };
+const listAllUsersForFrontend = asyncHandler(async (_req, res) => {
+  const users = await User.find({ deletedAt: null }).sort({ createdAt: -1 });
+  return sendSuccess(res, {
+    message: "Users retrieved successfully.",
+    data: users,
+  });
+});
+
+module.exports = { searchUserByEmail, listAllUsersForFrontend };

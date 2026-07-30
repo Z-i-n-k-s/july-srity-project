@@ -40,6 +40,15 @@ const userSchema = new mongoose.Schema(
       required: true,
       select: false,
     },
+
+    // Compatibility for accounts created by the previous frontend/backend.
+    // New registrations never write this field. A valid bcrypt value is
+    // migrated to passwordHash on the next successful sign-in.
+    password: {
+      type: String,
+      select: false,
+      default: null,
+    },
     role: {
       type: String,
       enum: USER_ROLES,
@@ -70,6 +79,16 @@ const userSchema = new mongoose.Schema(
       type: String,
       enum: LANGUAGES,
       default: "BN",
+    },
+    language: {
+      type: String,
+      enum: ["English", "বাংলা"],
+      default: "English",
+    },
+    publicName: {
+      type: String,
+      enum: ["Hide by default", "Show my name", "Ask every time"],
+      default: "Ask every time",
     },
     emailVerifiedAt: {
       type: Date,
@@ -107,6 +126,7 @@ const userSchema = new mongoose.Schema(
     toJSON: {
       transform(_document, result) {
         delete result.passwordHash;
+        delete result.password;
         delete result.passwordResetTokenHash;
         delete result.passwordResetTokenExpiresAt;
         return result;

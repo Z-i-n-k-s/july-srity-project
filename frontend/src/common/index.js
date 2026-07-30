@@ -1,6 +1,10 @@
-const backendDomin = process.env.REACT_APP_BACKEND_URL || "http://localhost:8080";
+const backendDomin =
+  process.env.REACT_APP_BACKEND_URL || "http://localhost:8080";
 
-const endpoint = (path, method = "get") => ({ url: `${backendDomin}${path}`, method });
+const endpoint = (path, method = "get") => ({
+  url: `${backendDomin}${path}`,
+  method,
+});
 
 const SummaryApi = {
   signUP: endpoint("/api/signup", "post"),
@@ -42,8 +46,41 @@ const SummaryApi = {
   adminSupportCase: endpoint("/api/admin/support-cases", "get"),
   adminSupportMessage: endpoint("/api/admin/support-cases", "post"),
   adminVerifyMedicalDocument: endpoint("/api/admin/support-cases", "post"),
-  adminMissingReports: endpoint("/api/admin/missing-reports", "get"),
-  adminReviewMissingReport: endpoint("/api/admin/missing-reports", "post"),
+ reportMissingPerson: endpoint("/api/missing-persons", "post"),
+
+myMissingReports: endpoint("/api/missing-persons/mine", "get"),
+
+reportSighting: (reportId) =>
+  endpoint(`/api/missing-persons/${reportId}/sightings`, "post"),
+
+publicMissingPerson: (reportId) =>
+  endpoint(`/api/missing-persons/public/${reportId}`, "get"),
+
+missingReport: (reportId) =>
+  endpoint(`/api/missing-persons/${reportId}`, "get"),
+
+updateMissingReport: (reportId) =>
+  endpoint(`/api/missing-persons/${reportId}`, "patch"),
+
+submitMissingReport: (reportId) =>
+  endpoint(`/api/missing-persons/${reportId}/submit`, "post"),
+
+missingAdminReports: endpoint("/api/missing-persons/admin", "get"),
+
+missingReportStatus: (reportId) =>
+  endpoint(`/api/missing-persons/${reportId}/status`, "patch"),
+
+missingAssignAdmins: (reportId) =>
+  endpoint(`/api/missing-persons/${reportId}/assign`, "patch"),
+
+missingSightingStatus: (reportId, sightingId) =>
+  endpoint(
+    `/api/missing-persons/${reportId}/sightings/${sightingId}/status`,
+    "patch"
+  ),
+
+deleteMissingReport: (reportId) =>
+  endpoint(`/api/missing-persons/${reportId}`, "delete"),
   adminArchive: endpoint("/api/admin/archive", "get"),
   adminPublishArchive: endpoint("/api/admin/archive", "post"),
 };

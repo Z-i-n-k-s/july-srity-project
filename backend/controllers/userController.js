@@ -11,8 +11,29 @@ const getMe = asyncHandler(async (req, res) => {
 
 const updateMe = asyncHandler(async (req, res) => {
   const before = req.user.toObject();
-  const updates = pick(req.body, ["name", "username", "phone", "profilePic", "avatarMediaId", "preferredLanguage"]);
-  const user = await User.findByIdAndUpdate(req.userId, updates, { new: true, runValidators: true });
+  const updates = pick(req.body, [
+    "name", "username", "phone", "profilePic", "avatarMediaId", "preferredLanguage", "publicName",
+  ]);
+
+  // The existing frontend sends `language` as a display label.
+  if (Object.prototype.hasOwnProperty.call(req.body, "language")) {
+    updates.language = String(req.body.language).includes("বাংলা") ? "বাংলা" : "English";
+    updates.preferredLanguage = updates.language === "বাংলা" ? "BN" : "EN";
+  }
+  if (Object.prototype.hasOwnProperty.call(req.body, "publicName")) {
+    updates.publicName = req.body.publicName;
+  }
+  if (req.body.email?.trim()) {
+    const email = req.body.email.trim().toLowerCase();
+    const duplicate = await User.exists({ _id: { $ne: req.userId }, email, deletedAt: null });
+    if (duplicate) throw new AppError("An account is already registered with this email address.", 409, "EMAIL_ALREADY_REGISTERED");
+    updates.email = email;
+  }
+
+  const user = await User.findByIdAndUpdate(req.userId, updates, {
+    new: true,
+    runValidators: true,
+  });
   await writeAudit(req, { action: "UPDATE", targetType: "USER", targetId: user._id, before, after: user.toObject() });
   return sendSuccess(res, { message: "Your profile was updated successfully.", data: user });
 });

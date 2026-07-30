@@ -11,6 +11,11 @@ function configureCloudinary() {
       "CLOUDINARY_NOT_CONFIGURED"
     );
   }
+  console.log({
+  cloud: process.env.CLOUDINARY_CLOUD_NAME,
+  key: process.env.CLOUDINARY_API_KEY,
+  secret: process.env.CLOUDINARY_API_SECRET,
+});
 
   cloudinary.config({
     cloud_name: CLOUDINARY_CLOUD_NAME,
@@ -18,8 +23,10 @@ function configureCloudinary() {
     api_secret: CLOUDINARY_API_SECRET,
     secure: true,
   });
+  
 
   return cloudinary;
 }
+
 
 module.exports = { cloudinary, configureCloudinary };

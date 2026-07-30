@@ -1,3 +1,4 @@
+const fs = require("fs");
 const multer = require("multer");
 
 function normalizeError(error) {
@@ -49,7 +50,25 @@ function notFound(req, res) {
   });
 }
 
-function errorHandler(error, _req, res, _next) {
+function cleanupTemporaryUploads(req) {
+  const files = [
+    ...(Array.isArray(req.files) ? req.files : []),
+    ...(req.file ? [req.file] : []),
+  ];
+  for (const file of files) {
+    if (!file?.path) continue;
+    try {
+      fs.unlinkSync(file.path);
+    } catch (cleanupError) {
+      if (cleanupError.code !== "ENOENT") {
+        console.error(`Could not remove temporary upload ${file.path}:`, cleanupError.message);
+      }
+    }
+  }
+}
+
+function errorHandler(error, req, res, _next) {
+  cleanupTemporaryUploads(req);
   const normalized = normalizeError(error);
   if (normalized.statusCode >= 500) console.error(error);
 

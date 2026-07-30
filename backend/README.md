@@ -24,6 +24,11 @@ This package connects both sources without pretending that visual-only landing-p
 - Live transparency statistics and deterministic July Sathi action guidance
 - Offline sync aliases using stable `clientDraftId` values to prevent duplicate testimony/support records after retries
 
+
+## Existing frontend compatibility
+
+The React frontend is the source of truth for this integration. The backend exposes every route currently called by `src/common/index.js`, `src/lib/api.js`, and the direct authentication/profile/admin `fetch()` calls. No frontend file is included or modified in this backend package. See `FRONTEND_API_CONTRACT.md` and `FRONTEND_COMPATIBILITY_AUDIT.md`.
+
 ## Folder structure
 
 ```text
@@ -80,7 +85,7 @@ At minimum, set:
 
 ```env
 MONGODB_URI=
-FRONTEND_URL=http://localhost:5173
+FRONTEND_URL=http://localhost:3000
 JWT_ACCESS_SECRET=
 CLOUDINARY_CLOUD_NAME=
 CLOUDINARY_API_KEY=
@@ -236,13 +241,12 @@ History/version/audit collections are treated as append-only records rather than
 npm run check
 ```
 
-This performs both a syntax check for every JavaScript file and a stubbed module-load check that verifies model/controller/router imports and route handlers without connecting to MongoDB.
+This performs a syntax check, a stubbed module-load check, and a frontend-contract check for every API route used by the existing React application.
 
 ## Documentation
 
-- `API_REFERENCE.md` — route groups and example request bodies
-- `FEATURE_MATRIX.md` — PDF features versus backend implementation
-- `IMPLEMENTATION_REPORT.md` — source review, repairs, architecture decisions, and known limitations
+- `FRONTEND_API_CONTRACT.md` — exact routes, payloads, response shapes, authentication, and multipart fields consumed by the current frontend
+- `FRONTEND_COMPATIBILITY_AUDIT.md` — audit findings, backend changes, verification results, setup, and smoke-test sequence
 
 ## Important deployment notes
 

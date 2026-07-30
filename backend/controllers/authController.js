@@ -60,7 +60,7 @@ const signUp = asyncHandler(async (req, res) => {
   const { name, email, password } = req.body;
   if (!name?.trim()) throw new AppError("Name is required.", 422, "NAME_REQUIRED");
   if (!email?.trim()) throw new AppError("Email is required.", 422, "EMAIL_REQUIRED");
-  if (!password || password.length < 8) throw new AppError("Password must contain at least 8 characters.", 422, "WEAK_PASSWORD");
+  if (!password || password.length < 6) throw new AppError("Password must contain at least 6 characters.", 422, "WEAK_PASSWORD");
 
   const normalizedEmail = email.trim().toLowerCase();
   const existing = await User.findOne({ email: normalizedEmail, deletedAt: null });
@@ -89,49 +89,34 @@ const signIn = asyncHandler(async (req, res) => {
   const password = req.body.password;
 
   if (!email || !password) {
-    throw new AppError(
-      "Email and password are required.",
-      422,
-      "CREDENTIALS_REQUIRED"
-    );
+    throw new AppError("Email and password are required.", 422, "CREDENTIALS_REQUIRED");
   }
 
-  const user = await User.findOne({
-    email,
-    deletedAt: null,
-  }).select("+passwordHash");
+  const user = await User.findOne({ email, deletedAt: null })
+    .select("+passwordHash +password");
 
   if (!user) {
-    throw new AppError(
-      "The email or password is incorrect.",
-      401,
-      "INVALID_CREDENTIALS"
-    );
+    throw new AppError("The email or password is incorrect.", 401, "INVALID_CREDENTIALS");
   }
 
-  /*
-   * Prevent bcrypt.compare() from receiving undefined.
-   * This normally means the account was created using the old `password` field.
-   */
-  if (!user.passwordHash) {
+  // The former backend stored bcrypt hashes in `password`. Accept that
+  // value once and migrate it to passwordHash after successful login.
+  let storedHash = user.passwordHash;
+  if (!storedHash && typeof user.password === "string" && /^\$2[aby]\$/.test(user.password)) {
+    storedHash = user.password;
+  }
+
+  if (!storedHash) {
     throw new AppError(
-      "This account does not contain a valid password hash. Please reset the password or register the account again.",
+      "This account has no usable password. Please use the password-reset option.",
       409,
       "PASSWORD_HASH_MISSING"
     );
   }
 
-  const passwordMatches = await bcrypt.compare(
-    password,
-    user.passwordHash
-  );
-
+  const passwordMatches = await bcrypt.compare(password, storedHash);
   if (!passwordMatches) {
-    throw new AppError(
-      "The email or password is incorrect.",
-      401,
-      "INVALID_CREDENTIALS"
-    );
+    throw new AppError("The email or password is incorrect.", 401, "INVALID_CREDENTIALS");
   }
 
   if (user.accountStatus !== "ACTIVE") {
@@ -142,30 +127,28 @@ const signIn = asyncHandler(async (req, res) => {
     );
   }
 
+  if (!user.passwordHash) {
+    user.passwordHash = storedHash;
+    user.password = null;
+  }
   user.lastLoginAt = new Date();
-
-  await user.save({
-    validateBeforeSave: false,
-  });
+  await user.save({ validateBeforeSave: false });
 
   const accessToken = await issueSession(req, res, user);
-
   const publicUser = user.toObject();
   delete publicUser.passwordHash;
+  delete publicUser.password;
   delete publicUser.passwordResetTokenHash;
   delete publicUser.passwordResetTokenExpiresAt;
 
   return sendSuccess(res, {
     message: "You signed in successfully.",
-    data: {
-      user: publicUser,
-      accessToken,
-    },
+    data: { user: publicUser, accessToken },
   });
 });
 
 const refresh = asyncHandler(async (req, res) => {
-  const rawToken = req.cookies?.refreshToken || req.body.refreshToken;
+  const rawToken = req.cookies?.refreshToken || req.body?.refreshToken;
   if (!rawToken) throw new AppError("A refresh token is required.", 401, "REFRESH_TOKEN_REQUIRED");
 
   const replacement = createRandomToken(48);
@@ -203,7 +186,7 @@ const refresh = asyncHandler(async (req, res) => {
 });
 
 const logout = asyncHandler(async (req, res) => {
-  const rawToken = req.cookies?.refreshToken || req.body.refreshToken;
+  const rawToken = req.cookies?.refreshToken || req.body?.refreshToken;
   if (rawToken) {
     await AuthSession.updateOne(
       { refreshTokenHash: hashToken(rawToken), revokedAt: null },
@@ -265,7 +248,7 @@ const verifyResetToken = asyncHandler(async (req, res) => {
 const resetPassword = asyncHandler(async (req, res) => {
   const { token, password } = req.body;
   if (!token || !password) throw new AppError("Reset token and new password are required.", 422, "RESET_DATA_REQUIRED");
-  if (password.length < 8) throw new AppError("Password must contain at least 8 characters.", 422, "WEAK_PASSWORD");
+  if (password.length < 6) throw new AppError("Password must contain at least 6 characters.", 422, "WEAK_PASSWORD");
 
   const user = await User.findOne({
     passwordResetTokenHash: hashToken(token),

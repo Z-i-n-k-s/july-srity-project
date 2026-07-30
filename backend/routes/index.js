@@ -1,4 +1,5 @@
 const express = require("express");
+const frontendCompatibilityRoutes = require("./frontendCompatibilityRoutes");
 const authRoutes = require("./authRoutes");
 const userRoutes = require("./userRoutes");
 const mediaRoutes = require("./mediaRoutes");
@@ -842,6 +843,8 @@ const AppError = require("../helpers/AppError");
 
 const router = express.Router();
 
+router.use(frontendCompatibilityRoutes);
+
 router.use("/auth", authRoutes);
 router.use("/users", userRoutes);
 router.use("/media", mediaRoutes);
@@ -867,7 +870,7 @@ router.post("/userLogout", auth.logout);
 router.post("/forgot-password", authLimiter, auth.forgotPassword);
 router.post("/reset-password", authLimiter, auth.resetPassword);
 router.get("/verify-reset-token/:token", authLimiter, auth.verifyResetToken);
-router.get("/all-user", authenticate, authorize("ADMIN"), users.listUsers);
+router.get("/all-user", authenticate, authorize("ADMIN"), legacy.listAllUsersForFrontend);
 router.post("/user-search", authenticate, authorize("ADMIN"), legacy.searchUserByEmail);
 router.post("/update-profile", authenticate, users.updateMe);
 router.post(

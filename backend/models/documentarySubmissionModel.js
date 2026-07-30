@@ -31,6 +31,13 @@ const documentarySubmissionSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
+    // Original human-readable type selected by the current frontend.
+    frontendType: {
+      type: String,
+      trim: true,
+      maxlength: 120,
+      default: null,
+    },
     title: {
       type: String,
       required: true,
@@ -47,6 +54,41 @@ const documentarySubmissionSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    // Exact frontend selections are retained for reviewer/admin screens.
+    contentTypes: {
+      type: [String],
+      default: [],
+    },
+    archiveVisibility: {
+      type: String,
+      trim: true,
+      default: null,
+    },
+    publicationPermissionLabel: {
+      type: String,
+      trim: true,
+      default: null,
+    },
+    identityPreferenceLabel: {
+      type: String,
+      trim: true,
+      default: null,
+    },
+    publicAttributionLabel: {
+      type: String,
+      trim: true,
+      maxlength: 160,
+      default: null,
+    },
+    privacyControls: {
+      removeMetadata: { type: Boolean, default: true },
+      redactNames: { type: Boolean, default: false },
+      protectFaces: { type: Boolean, default: false },
+      protectVoices: { type: Boolean, default: false },
+      allowAdminContact: { type: Boolean, default: true },
+    },
+    accuracyConfirmed: { type: Boolean, default: false },
+    privacyConfirmed: { type: Boolean, default: false },
     mediaIds: [
       {
         type: mongoose.Schema.Types.ObjectId,
@@ -146,6 +188,11 @@ const documentarySubmissionSchema = new mongoose.Schema(
       enum: SUBMISSION_STATUSES,
       default: "DRAFT",
       index: true,
+    },
+    reviewLabel: {
+      type: String,
+      trim: true,
+      default: null,
     },
     assignedAdminId: {
       type: mongoose.Schema.Types.ObjectId,

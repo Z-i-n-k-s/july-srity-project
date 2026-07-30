@@ -76,6 +76,12 @@ const documentaryItemSchema = new mongoose.Schema(
       default: null,
       index: true,
     },
+    locationDescription: {
+      type: String,
+      trim: true,
+      maxlength: 1000,
+      default: null,
+    },
     tagIds: [
       {
         type: mongoose.Schema.Types.ObjectId,
