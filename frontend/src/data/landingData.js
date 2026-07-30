@@ -7,7 +7,6 @@ import {
   Archive,
   Camera,
   CheckCircle2,
-  Clock3,
   FileCheck2,
   FileText,
   HeartHandshake,
