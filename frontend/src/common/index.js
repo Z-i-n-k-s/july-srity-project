@@ -51,7 +51,18 @@ const SummaryApi = {
   publicArchive: endpoint("/api/archive", "GET"),
   publicStories: endpoint("/api/stories", "GET"),
   publicTimeline: endpoint("/api/timeline", "GET"),
+memoryMapSummary: endpoint(
+  "/api/map/locations",
+  "GET",
+),
 
+memoryMapMemories: (division) =>
+  endpoint(
+    `/api/map/locations/${encodeURIComponent(
+      division,
+    )}/memories`,
+    "GET",
+  ),
   /* ------------------------------------------------------------------------ */
   /* Documentary submissions                                                  */
   /* ------------------------------------------------------------------------ */

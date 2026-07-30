@@ -51,13 +51,13 @@ const LoadingScreen = () => (
 
 // Root access follows the existing project flow: guests go to login,
 // users go to the user site, and administrators go to the admin panel.
-const RootRedirect = () => {
-  const user = useSelector((state) => state?.user?.user);
-  const loading = useSelector((state) => state?.user?.loading);
+// const RootRedirect = () => {
+//   const user = useSelector((state) => state?.user?.user);
+//   const loading = useSelector((state) => state?.user?.loading);
 
-  if (loading) return <LoadingScreen />;
-  return <Navigate to={user ? getDefaultRouteForUser(user) : "/login"} replace />;
-};
+//   if (loading) return <LoadingScreen />;
+//   return <Navigate to={user ? getDefaultRouteForUser(user) : "/login"} replace />;
+// };
 
 // Logged-in visitors cannot reopen authentication pages.
 const GuestRoute = ({ children }) => {
@@ -65,7 +65,11 @@ const GuestRoute = ({ children }) => {
   const loading = useSelector((state) => state?.user?.loading);
 
   if (loading) return <LoadingScreen />;
-  return user ? <Navigate to={getDefaultRouteForUser(user)} replace /> : children;
+  return user ? (
+    <Navigate to={getDefaultRouteForUser(user)} replace />
+  ) : (
+    children
+  );
 };
 
 const protect = (element, allowedRoles = [ROLE.USER, ROLE.ADMIN]) => (
@@ -80,14 +84,45 @@ const router = createBrowserRouter([
     path: "/",
     element: <App />,
     children: [
-      { index: true, element: <RootRedirect /> },
-      { path: "login", element: <GuestRoute><Login /></GuestRoute> },
-      { path: "forgot-password", element: <GuestRoute><ForgotPassword /></GuestRoute> },
-      { path: "reset-password/:token", element: <GuestRoute><ResetPassword /></GuestRoute> },
-      { path: "sign-up", element: <GuestRoute><SignUP /></GuestRoute> },
+      { index: true, element: <Home /> },
+      {
+        path: "login",
+        element: (
+          <GuestRoute>
+            <Login />
+          </GuestRoute>
+        ),
+      },
+      {
+        path: "forgot-password",
+        element: (
+          <GuestRoute>
+            <ForgotPassword />
+          </GuestRoute>
+        ),
+      },
+      {
+        path: "reset-password/:token",
+        element: (
+          <GuestRoute>
+            <ResetPassword />
+          </GuestRoute>
+        ),
+      },
+      {
+        path: "sign-up",
+        element: (
+          <GuestRoute>
+            <SignUP />
+          </GuestRoute>
+        ),
+      },
 
       // Shared authenticated pages.
-      { path: "home", element: protect(<Home />) },
+      {
+        path: "home",
+        element: <Navigate to="/" replace />,
+      },
       { path: "archive", element: protect(<ArchivePage />) },
       { path: "archive/:id", element: protect(<ArchiveDetailsPage />) },
       { path: "timeline", element: protect(<TimelinePage />) },
@@ -95,13 +130,19 @@ const router = createBrowserRouter([
       { path: "stories/:id", element: protect(<StoryDetailsPage />) },
       { path: "support", element: protect(<SupportPage />) },
       { path: "missing-persons", element: protect(<MissingPersonsPage />) },
-      { path: "missing-persons/:id", element: protect(<MissingPersonDetailsPage />) },
+      {
+        path: "missing-persons/:id",
+        element: protect(<MissingPersonDetailsPage />),
+      },
       { path: "about", element: protect(<AboutPage />) },
 
       // User-only contribution, support and account pages.
       { path: "submit", element: userOnly(<SubmitEvidencePage />) },
       { path: "support/new", element: userOnly(<NewSupportRequestPage />) },
-      { path: "missing-persons/report", element: userOnly(<ReportMissingPersonPage />) },
+      {
+        path: "missing-persons/report",
+        element: userOnly(<ReportMissingPersonPage />),
+      },
       {
         path: "account",
         element: userOnly(<UserShell />),
@@ -124,7 +165,10 @@ const router = createBrowserRouter([
           { index: true, element: <AdminDashboard /> },
           { path: "submissions", element: <AdminSubmissions /> },
           { path: "support-cases", element: <AdminSupportCases /> },
-          { path: "support-cases/:caseId", element: <AdminSupportCaseDetail /> },
+          {
+            path: "support-cases/:caseId",
+            element: <AdminSupportCaseDetail />,
+          },
           { path: "missing-reports", element: <AdminMissingReports /> },
           { path: "archive-manager", element: <AdminArchiveManager /> },
           { path: "all-users", element: <AllUsers /> },

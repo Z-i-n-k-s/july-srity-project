@@ -1,0 +1,382 @@
+.memory-map-stage {
+  position: relative;
+  isolation: isolate;
+  min-height: 690px;
+  overflow: hidden;
+  border-radius: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background:
+    radial-gradient(circle at 55% 45%, rgba(37, 122, 176, 0.16), transparent 34%),
+    radial-gradient(circle at 18% 20%, rgba(77, 155, 141, 0.12), transparent 31%),
+    linear-gradient(145deg, rgba(10, 20, 32, 0.98), rgba(5, 13, 22, 0.98));
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.42);
+}
+
+/* ================================
+   MAP INTRO — RIGHT SIDE
+================================ */
+
+.memory-map-intro {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 8;
+  width: min(39%, 320px);
+  padding: 2rem;
+  text-align: right;
+  pointer-events: none;
+}
+
+.memory-map-intro-title {
+  max-width: 320px;
+  margin: 0 0 0 auto;
+  font-family: inherit;
+  font-size: clamp(1.75rem, 2.55vw, 2.3rem);
+  font-weight: 750;
+  line-height: 1.08;
+  letter-spacing: -0.035em;
+  color: #ffffff;
+  text-wrap: balance;
+  text-shadow:
+    0 5px 24px rgba(0, 0, 0, 0.65),
+    0 0 30px rgba(10, 45, 70, 0.35);
+}
+
+.memory-map-intro-title span {
+  display: block;
+}
+
+.memory-map-intro-description {
+  max-width: 275px;
+  margin: 1rem 0 0 auto;
+  font-size: 0.875rem;
+  line-height: 1.7;
+  color: #b6c0c9;
+  text-shadow: 0 3px 15px rgba(0, 0, 0, 0.5);
+}
+
+.memory-map-intro-error {
+  max-width: 275px;
+  margin: 0.75rem 0 0 auto;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: #f17b82;
+}
+
+.memory-map-stage::before,
+.memory-map-stage::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.memory-map-stage::before {
+  opacity: 0.34;
+  background-image:
+    linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px);
+  background-size: 42px 42px;
+  mask-image: linear-gradient(to bottom, rgba(0,0,0,.9), transparent 92%);
+}
+
+.memory-map-stage::after {
+  background:
+    linear-gradient(120deg, transparent 38%, rgba(55, 135, 192, 0.09) 50%, transparent 62%),
+    radial-gradient(circle at 50% 100%, rgba(10, 114, 157, .14), transparent 40%);
+  animation: map-sheen 8s ease-in-out infinite;
+}
+
+.memory-map-canvas {
+  position: absolute;
+  left: 50%;
+  top: 53%;
+  width: min(56%, 470px);
+  aspect-ratio: 1550.242 / 2149.604;
+  transform: translate(-50%, -50%);
+  filter: drop-shadow(0 30px 38px rgba(0, 0, 0, 0.42));
+  z-index: 2;
+}
+
+.memory-map-svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.memory-map-svg > g[id] {
+  cursor: pointer;
+  transition: opacity .28s ease, filter .28s ease, transform .28s ease;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.memory-map-svg > g[id] path {
+  stroke: rgba(215, 233, 244, .62) !important;
+  stroke-width: 2.4 !important;
+  vector-effect: non-scaling-stroke;
+  transition: fill .28s ease, stroke .28s ease, filter .28s ease;
+}
+
+.memory-map-svg #Rongpur path { fill: #3f9f5f !important; }
+.memory-map-svg #Rajshahi path { fill: #5c56a8 !important; }
+.memory-map-svg #Khulna path { fill: #b8982e !important; }
+.memory-map-svg #Barisal path { fill: #319f98 !important; }
+.memory-map-svg #Chittagong path { fill: #bd4a4f !important; }
+.memory-map-svg #Sylhet path { fill: #dc7d2f !important; }
+.memory-map-svg #Mymensingh path { fill: #349d79 !important; }
+.memory-map-svg #Dhaka path { fill: #3475be !important; }
+.memory-map-svg #Divisional_borders,
+.memory-map-svg #National_border { pointer-events: none; }
+.memory-map-svg #Divisional_borders path { stroke: rgba(255,255,255,.72) !important; stroke-width: 1.5 !important; }
+.memory-map-svg #National_border path { stroke: rgba(116, 204, 210, .58) !important; stroke-width: 2 !important; }
+
+.memory-map-svg > g[id]:not(#Divisional_borders):not(#National_border):hover,
+.memory-map-svg > g[id].is-active {
+  opacity: 1 !important;
+  filter: brightness(1.18) saturate(1.08) drop-shadow(0 0 18px rgba(88, 175, 255, .28));
+  transform: translateY(-3px) scale(1.012);
+}
+
+.memory-map-svg > g[id].is-active path {
+  stroke: rgba(255,255,255,.96) !important;
+}
+
+.memory-map-marker {
+  position: absolute;
+  z-index: 5;
+  width: 18px;
+  height: 18px;
+  transform: translate(-50%, -50%);
+  border: 3px solid rgba(255,255,255,.95);
+  border-radius: 999px;
+  background: var(--marker-color);
+  box-shadow: 0 0 0 6px color-mix(in srgb, var(--marker-color) 24%, transparent), 0 0 22px var(--marker-color);
+  transition: transform .25s ease, box-shadow .25s ease;
+}
+
+.memory-map-marker::before,
+.memory-map-marker::after {
+  content: "";
+  position: absolute;
+  inset: -7px;
+  border-radius: inherit;
+  border: 1px solid color-mix(in srgb, var(--marker-color) 58%, transparent);
+  animation: marker-pulse 2.6s ease-out infinite;
+}
+
+.memory-map-marker::after { animation-delay: 1.3s; }
+
+.memory-map-marker:hover,
+.memory-map-marker.is-active {
+  transform: translate(-50%, -50%) scale(1.24);
+  box-shadow: 0 0 0 8px color-mix(in srgb, var(--marker-color) 28%, transparent), 0 0 30px var(--marker-color);
+}
+
+.memory-map-label {
+  position: absolute;
+  z-index: 6;
+  min-width: 138px;
+  max-width: 180px;
+  padding: .66rem .78rem;
+  border-radius: .72rem;
+  border: 1px solid color-mix(in srgb, var(--marker-color) 78%, white 8%);
+  background: linear-gradient(145deg, rgba(10,18,28,.94), rgba(13,25,38,.84));
+  box-shadow: 0 14px 30px rgba(0,0,0,.32), inset 0 1px 0 rgba(255,255,255,.07);
+  color: white;
+  text-align: left;
+  backdrop-filter: blur(14px);
+  transition: transform .25s ease, border-color .25s ease, background .25s ease;
+}
+
+.memory-map-label::after {
+  content: "";
+  position: absolute;
+  width: 58px;
+  height: 1px;
+  right: -47px;
+  top: 50%;
+  background: linear-gradient(90deg, var(--marker-color), transparent);
+  transform: rotate(var(--line-angle, 0deg));
+  transform-origin: left center;
+  opacity: .82;
+}
+
+.memory-map-label.is-right::after {
+  right: auto;
+  left: -47px;
+  background: linear-gradient(90deg, transparent, var(--marker-color));
+  transform-origin: right center;
+}
+
+.memory-map-label:hover,
+.memory-map-label.is-active {
+  transform: translateY(-3px);
+  border-color: var(--marker-color);
+  background: linear-gradient(145deg, rgba(14,26,39,.98), rgba(15,33,49,.94));
+}
+
+.memory-map-panel-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(215,154,84,.42) rgba(255,255,255,.04);
+}
+.memory-map-panel-scroll::-webkit-scrollbar { width: 8px; }
+.memory-map-panel-scroll::-webkit-scrollbar-track { background: rgba(255,255,255,.035); }
+.memory-map-panel-scroll::-webkit-scrollbar-thumb { background: rgba(215,154,84,.36); border-radius: 999px; }
+
+.memory-map-record {
+  position: relative;
+  overflow: hidden;
+}
+.memory-map-record::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(110deg, transparent 38%, rgba(255,255,255,.045) 50%, transparent 62%);
+  transform: translateX(-120%);
+  transition: transform .55s ease;
+}
+.memory-map-record:hover::after { transform: translateX(120%); }
+
+@keyframes marker-pulse {
+  0% { transform: scale(.6); opacity: .75; }
+  75%, 100% { transform: scale(1.8); opacity: 0; }
+}
+
+@keyframes map-sheen {
+  0%, 100% { opacity: .45; transform: translateX(-3%); }
+  50% { opacity: .8; transform: translateX(3%); }
+}
+
+@media (max-width: 1023px) {
+  .memory-map-stage {
+    min-height: 660px;
+  }
+
+  .memory-map-intro {
+    width: min(42%, 290px);
+    padding: 1.6rem;
+  }
+
+  .memory-map-intro-title {
+    max-width: 290px;
+    font-size: clamp(1.55rem, 3.2vw, 2rem);
+  }
+
+  .memory-map-intro-description,
+  .memory-map-intro-error {
+    max-width: 245px;
+  }
+
+  .memory-map-canvas {
+    width: min(62%, 430px);
+    top: 55%;
+  }
+}
+
+@media (max-width: 700px) {
+  .memory-map-stage {
+    min-height: 610px;
+    border-radius: 1.1rem;
+  }
+
+  .memory-map-intro {
+    top: 0;
+    right: auto;
+    left: 0;
+    width: 100%;
+    max-width: 270px;
+    padding: 1.25rem;
+    text-align: left;
+  }
+
+  .memory-map-intro-title {
+    max-width: 255px;
+    margin-left: 0;
+    font-size: clamp(1.4rem, 6vw, 1.72rem);
+    line-height: 1.1;
+  }
+
+  .memory-map-intro-description {
+    max-width: 225px;
+    margin: 0.75rem 0 0;
+    font-size: 0.76rem;
+    line-height: 1.55;
+  }
+
+  .memory-map-intro-error {
+    max-width: 225px;
+    margin-left: 0;
+    font-size: 0.68rem;
+  }
+
+  .memory-map-canvas {
+    width: min(68%, 330px);
+    top: 57%;
+  }
+
+  .memory-map-label {
+    min-width: 104px;
+    max-width: 125px;
+    padding: 0.48rem 0.56rem;
+    font-size: 0.72rem;
+  }
+
+  .memory-map-label::after {
+    width: 35px;
+    right: -30px;
+  }
+
+  .memory-map-label.is-right::after {
+    left: -30px;
+  }
+
+  .memory-map-marker {
+    width: 15px;
+    height: 15px;
+  }
+}
+
+@media (max-width: 470px) {
+  .memory-map-stage {
+    min-height: 560px;
+  }
+
+  .memory-map-intro {
+    max-width: 235px;
+    padding: 1rem;
+  }
+
+  .memory-map-intro-title {
+    max-width: 225px;
+    font-size: 1.34rem;
+  }
+
+  .memory-map-intro-description {
+    max-width: 195px;
+    font-size: 0.7rem;
+  }
+
+  .memory-map-canvas {
+    width: 70%;
+    top: 59%;
+  }
+
+  .memory-map-label {
+    min-width: 88px;
+    max-width: 104px;
+    padding: 0.4rem 0.46rem;
+  }
+
+  .memory-map-label .memory-count {
+    display: block;
+    font-size: 0.62rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .memory-map-stage::after,
+  .memory-map-marker::before,
+  .memory-map-marker::after { animation: none; }
+}
