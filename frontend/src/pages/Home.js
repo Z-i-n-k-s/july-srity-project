@@ -14,11 +14,11 @@ import InteractiveMemoryMap from "../components/landing/InteractiveMemoryMap";
 
 const Home = () => (
   <>
-    <Hero />
+  <Hero />
+  <InteractiveMemoryMap />
     <TrustStrip />
     <ArchiveOverview />
     <FeaturedArchive />
-    <InteractiveMemoryMap />
     <TimelinePreview />
     <StoriesSection />
     <SupportSection />
