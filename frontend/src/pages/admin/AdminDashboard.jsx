@@ -45,8 +45,16 @@ const getId = (item) => item?._id || item?.id || item?.reportNumber || item?.sub
 const getTimeValue = (item) => item?.updatedAt || item?.reviewedAt || item?.submittedAt || item?.createdAt || item?.lastMessageAt || "";
 const formatTime = (value) => {
   if (!value) return "";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return String(value);
+  if (typeof value === "number") {
+    const d = new Date(value);
+    return Number.isNaN(d.getTime()) ? String(value) :
+      new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(d);
+  }
+  const str = String(value).trim();
+  // Pre-formatted string (has letters, not ISO) → return as-is
+  if (/[A-Za-z]/.test(str) && !/^\d{4}-\d{2}-\d{2}/.test(str)) return str;
+  const date = new Date(str);
+  if (Number.isNaN(date.getTime())) return str;
   return new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(date);
 };
 
