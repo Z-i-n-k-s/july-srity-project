@@ -59,7 +59,7 @@ export default function MySubmissionsPage() {
         <Button to="/submit"><Plus className="h-4 w-4" />{pick("New Submission", "নতুন জমা")}</Button>
       </div>
 
-      {blockedCount > 0 && <div className="mt-5 flex gap-3 rounded-2xl border border-archive-rose/20 bg-archive-rose/[0.06] p-4 text-sm text-[#DAB8BE]"><AlertTriangle className="h-5 w-5 shrink-0 text-archive-rose" /><p>{pick(`${blockedCount} record(s) returned by the server were hidden because they were not linked to your account.`, `সার্ভার থেকে পাওয়া ${blockedCount}টি রেকর্ড আপনার অ্যাকাউন্টের সঙ্গে যুক্ত না থাকায় লুকানো হয়েছে।`)}</p></div>}
+      {/* {blockedCount > 0 && <div className="mt-5 flex gap-3 rounded-2xl border border-archive-rose/20 bg-archive-rose/[0.06] p-4 text-sm text-[#DAB8BE]"><AlertTriangle className="h-5 w-5 shrink-0 text-archive-rose" /><p>{pick(`${blockedCount} record(s) returned by the server were hidden because they were not linked to your account.`, `সার্ভার থেকে পাওয়া ${blockedCount}টি রেকর্ড আপনার অ্যাকাউন্টের সঙ্গে যুক্ত না থাকায় লুকানো হয়েছে।`)}</p></div>} */}
 
       <div className="mt-8 grid gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4 md:grid-cols-[1fr_240px]">
         <label className="relative"><span className="sr-only">Search submissions</span><Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-archive-muted" /><input className="field-control pl-12" value={query} onChange={(event) => setQuery(event.target.value)} placeholder={pick("Search title, type or submission ID", "শিরোনাম, ধরন বা জমার আইডি খুঁজুন")} /></label>
