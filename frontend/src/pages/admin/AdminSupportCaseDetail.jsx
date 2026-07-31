@@ -42,13 +42,7 @@ const getSupportCaseFromPayload = (payload) => {
     return null;
   }
 
-  return (
-    data.supportCase ||
-    data.caseData ||
-    data.case ||
-    data.room ||
-    data
-  );
+  return data.supportCase || data.caseData || data.case || data.room || data;
 };
 
 const ensureArray = (value) => (Array.isArray(value) ? value : []);
@@ -56,9 +50,9 @@ const ensureArray = (value) => (Array.isArray(value) ? value : []);
 const getMessages = (supportCase) =>
   ensureArray(
     supportCase?.messages ||
-    supportCase?.chatMessages ||
-    supportCase?.conversation ||
-    supportCase?.supportMessages,
+      supportCase?.chatMessages ||
+      supportCase?.conversation ||
+      supportCase?.supportMessages,
   );
 
 const getMessageText = (message) =>
@@ -70,10 +64,10 @@ const getMessageText = (message) =>
 const isAdminMessage = (message) => {
   const sender = String(
     message?.sender?.role ||
-    message?.senderRole ||
-    message?.role ||
-    message?.sender ||
-    "",
+      message?.senderRole ||
+      message?.role ||
+      message?.sender ||
+      "",
   ).toLowerCase();
 
   return (
@@ -115,11 +109,10 @@ const parseMessageDate = (rawValue) => {
     date = new Date(numericValue);
   } else {
     const value = String(rawValue).trim();
-    const normalisedValue = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?$/.test(
-      value,
-    )
-      ? `${value}Z`
-      : value;
+    const normalisedValue =
+      /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?$/.test(value)
+        ? `${value}Z`
+        : value;
 
     date = new Date(normalisedValue);
   }
@@ -226,11 +219,11 @@ const getAttachments = (message) => {
     message.document,
     message.attachmentName
       ? {
-        name: message.attachmentName,
-        type: message.attachmentType,
-        size: message.attachmentSize,
-        url: message.attachmentUrl || message.fileUrl,
-      }
+          name: message.attachmentName,
+          type: message.attachmentType,
+          size: message.attachmentSize,
+          url: message.attachmentUrl || message.fileUrl,
+        }
       : null,
   ];
 
@@ -447,20 +440,20 @@ export default function AdminSupportCaseDetail() {
         if (initial) {
           setLoadError(
             error?.message ||
-            pick(
-              "Unable to load the support room.",
-              "সহায়তা কক্ষ লোড করা যায়নি।",
-            ),
+              pick(
+                "Unable to load the support room.",
+                "সহায়তা কক্ষ লোড করা যায়নি।",
+              ),
           );
         }
 
         if (showError) {
           toast.error(
             error?.message ||
-            pick(
-              "Unable to load the support room.",
-              "সহায়তা কক্ষ লোড করা যায়নি।",
-            ),
+              pick(
+                "Unable to load the support room.",
+                "সহায়তা কক্ষ লোড করা যায়নি।",
+              ),
           );
         }
       } finally {
@@ -605,17 +598,13 @@ export default function AdminSupportCaseDetail() {
         );
       }
 
-      await adminApi.verifyMedicalDocument(
-        caseData.id || caseId,
-        documentId,
-        {
-          status,
-          note:
-            status === "Verified"
-              ? "Document reviewed by authorised admin."
-              : "Document is unclear or not relevant to the request.",
-        },
-      );
+      await adminApi.verifyMedicalDocument(caseData.id || caseId, documentId, {
+        status,
+        note:
+          status === "Verified"
+            ? "Document reviewed by authorised admin."
+            : "Document is unclear or not relevant to the request.",
+      });
 
       setCaseData((current) => ({
         ...current,
@@ -635,10 +624,10 @@ export default function AdminSupportCaseDetail() {
     } catch (error) {
       toast.error(
         error?.message ||
-        pick(
-          "The document status could not be updated.",
-          "নথির অবস্থা পরিবর্তন করা যায়নি।",
-        ),
+          pick(
+            "The document status could not be updated.",
+            "নথির অবস্থা পরিবর্তন করা যায়নি।",
+          ),
       );
     }
   };
@@ -659,10 +648,7 @@ export default function AdminSupportCaseDetail() {
 
     if (!allowed) {
       toast.error(
-        pick(
-          "Choose an image or PDF file.",
-          "ছবি বা PDF ফাইল নির্বাচন করুন।",
-        ),
+        pick("Choose an image or PDF file.", "ছবি বা PDF ফাইল নির্বাচন করুন।"),
       );
       clearAttachment();
       return;
@@ -734,9 +720,7 @@ export default function AdminSupportCaseDetail() {
           response?.data?.attachment ||
           response?.attachment ||
           response?.file ||
-          (responseData?.fileUrl
-            ? { url: responseData.fileUrl }
-            : null),
+          (responseData?.fileUrl ? { url: responseData.fileUrl } : null),
       );
 
       let localUrl = "";
@@ -759,12 +743,9 @@ export default function AdminSupportCaseDetail() {
         remoteMessage?.sentAt ||
         remoteMessage?.createdAt ||
         remoteMessage?.timestamp ||
-        remoteMessage?.updatedAt ||
-        remoteMessage?.time;
+        remoteMessage?.updatedAt;
 
-      const parsedRemoteTimestamp = parseMessageDate(
-        remoteRawTimestamp,
-      );
+      const parsedRemoteTimestamp = parseMessageDate(remoteRawTimestamp);
 
       const validatedTimestamp = parsedRemoteTimestamp
         ? parsedRemoteTimestamp.toISOString()
@@ -772,53 +753,32 @@ export default function AdminSupportCaseDetail() {
 
       const nextMessage = {
         ...(remoteMessage || {}),
-        id:
-          remoteMessage?.id ||
-          remoteMessage?._id ||
-          `admin-${Date.now()}`,
-        sender:
-          remoteMessage?.sender ||
-          remoteMessage?.senderRole ||
-          "admin",
+        id: remoteMessage?.id || remoteMessage?._id || `admin-${Date.now()}`,
+        sender: remoteMessage?.sender || remoteMessage?.senderRole || "admin",
         name:
-          remoteMessage?.name ||
-          remoteMessage?.senderName ||
-          "Support Admin",
-        text:
-          getMessageText(remoteMessage) ||
-          trimmedMessage,
+          remoteMessage?.name || remoteMessage?.senderName || "Support Admin",
+        text: getMessageText(remoteMessage) || trimmedMessage,
         sentAt: validatedTimestamp,
         createdAt: validatedTimestamp,
         optimistic: true,
         attachment:
-          remoteMessage?.attachment ||
-          remoteMessage?.file ||
-          finalAttachment,
+          remoteMessage?.attachment || remoteMessage?.file || finalAttachment,
       };
 
       setCaseData((current) => ({
         ...current,
-        messages: [
-          ...getMessages(current),
-          nextMessage,
-        ],
+        messages: [...getMessages(current), nextMessage],
         updatedAt: sentLocallyAt,
       }));
 
       setMessage("");
       clearAttachment();
     } catch (error) {
-      console.error(
-        "Unable to send support reply:",
-        error,
-      );
+      console.error("Unable to send support reply:", error);
 
       toast.error(
         error?.message ||
-          pick(
-            "The reply could not be sent.",
-            "উত্তর পাঠানো যায়নি।",
-          ),
+          pick("The reply could not be sent.", "উত্তর পাঠানো যায়নি।"),
       );
     } finally {
       setSending(false);
@@ -826,16 +786,9 @@ export default function AdminSupportCaseDetail() {
   };
 
   const handleMessageKeyDown = (event) => {
-    const composing =
-      event.nativeEvent?.isComposing ||
-      event.isComposing;
+    const composing = event.nativeEvent?.isComposing || event.isComposing;
 
-    if (
-      event.key !== "Enter" ||
-      event.shiftKey ||
-      composing ||
-      event.repeat
-    ) {
+    if (event.key !== "Enter" || event.shiftKey || composing || event.repeat) {
       return;
     }
 
@@ -860,7 +813,7 @@ export default function AdminSupportCaseDetail() {
       </div>
     );
   }
-  
+
   if (!caseData) {
     return (
       <div className="space-y-6">
@@ -871,7 +824,7 @@ export default function AdminSupportCaseDetail() {
           <ArrowLeft className="h-4 w-4" />
           {pick("Back to support cases", "সহায়তা কেসে ফিরুন")}
         </Link>
-  
+
         <section className="admin-card text-center">
           <ShieldAlert className="mx-auto h-10 w-10 text-archive-rose" />
           <h2 className="mt-4 font-display text-3xl font-semibold">
@@ -888,7 +841,7 @@ export default function AdminSupportCaseDetail() {
       </div>
     );
   }
-  
+
   return (
     <div className="space-y-6">
       <Link
@@ -898,7 +851,7 @@ export default function AdminSupportCaseDetail() {
         <ArrowLeft className="h-4 w-4" />
         {pick("Back to support cases", "সহায়তা কেসে ফিরুন")}
       </Link>
-  
+
       <section className="admin-card">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div>
@@ -909,23 +862,24 @@ export default function AdminSupportCaseDetail() {
             <p className="mt-3 max-w-3xl text-sm leading-6 text-archive-muted">
               {caseData.summary}
             </p>
-  
+
             <div className="mt-4 flex flex-wrap items-center gap-2">
               <StatusBadge status={caseData.status} />
-  
+
               <span
-                className={`rounded-full border px-2.5 py-1 text-xs ${caseData.priority === "Urgent"
+                className={`rounded-full border px-2.5 py-1 text-xs ${
+                  caseData.priority === "Urgent"
                     ? "border-archive-rose/25 bg-archive-rose/10 text-archive-rose"
                     : "border-white/10 text-archive-muted"
-                  }`}
+                }`}
               >
                 {caseData.priority}
               </span>
-  
+
               <span className="rounded-full border border-white/10 px-2.5 py-1 text-xs text-archive-muted">
                 {caseData.category}
               </span>
-  
+
               <span className="inline-flex items-center gap-1.5 rounded-full border border-archive-teal/15 bg-archive-teal/[0.05] px-2.5 py-1 text-xs text-archive-teal">
                 {refreshing ? (
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -938,7 +892,7 @@ export default function AdminSupportCaseDetail() {
               </span>
             </div>
           </div>
-  
+
           <div className="flex w-full flex-col gap-3 lg:w-auto lg:items-end">
             <div className="rounded-xl border border-archive-teal/20 bg-archive-teal/[0.07] p-4 text-xs leading-5 text-[#B9CFCB]">
               <LockKeyhole className="mr-2 inline h-4 w-4" />
@@ -947,7 +901,7 @@ export default function AdminSupportCaseDetail() {
                 "ব্যক্তিগত কক্ষ: কেবল অনুরোধকারী ও অনুমোদিত অ্যাডমিন",
               )}
             </div>
-  
+
             <div className="flex w-full flex-wrap items-center gap-2 lg:w-auto lg:justify-end">
               <select
                 value={caseData.status || "Under review"}
@@ -960,7 +914,7 @@ export default function AdminSupportCaseDetail() {
                 <option>Completed</option>
                 <option>Stopped</option>
               </select>
-  
+
               <button
                 type="button"
                 onClick={() => {
@@ -979,14 +933,14 @@ export default function AdminSupportCaseDetail() {
           </div>
         </div>
       </section>
-  
+
       <div className="grid gap-6 2xl:grid-cols-[1.05fr_.95fr]">
         <div className="space-y-6">
           <section className="admin-card">
             <h3 className="font-display text-3xl font-semibold">
               {pick("Case information", "কেসের তথ্য")}
             </h3>
-  
+
             <dl className="mt-5 grid gap-4 text-sm sm:grid-cols-2">
               <div>
                 <dt className="text-xs uppercase tracking-[.12em] text-archive-muted">
@@ -994,21 +948,21 @@ export default function AdminSupportCaseDetail() {
                 </dt>
                 <dd className="mt-1 text-white">{caseData.requester}</dd>
               </div>
-  
+
               <div>
                 <dt className="text-xs uppercase tracking-[.12em] text-archive-muted">
                   {pick("Assigned admin", "দায়িত্বপ্রাপ্ত অ্যাডমিন")}
                 </dt>
                 <dd className="mt-1 text-white">{caseData.assignedAdmin}</dd>
               </div>
-  
+
               <div>
                 <dt className="text-xs uppercase tracking-[.12em] text-archive-muted">
                   {pick("Approximate location", "আনুমানিক স্থান")}
                 </dt>
                 <dd className="mt-1 text-white">{caseData.location}</dd>
               </div>
-  
+
               <div>
                 <dt className="text-xs uppercase tracking-[.12em] text-archive-muted">
                   {pick("Hospital", "হাসপাতাল")}
@@ -1017,7 +971,7 @@ export default function AdminSupportCaseDetail() {
               </div>
             </dl>
           </section>
-  
+
           <section className="admin-card">
             <div className="flex items-center justify-between">
               <div>
@@ -1025,38 +979,35 @@ export default function AdminSupportCaseDetail() {
                   {pick("Sensitive documents", "সংবেদনশীল নথি")}
                 </p>
                 <h3 className="mt-2 font-display text-3xl font-semibold">
-                  {pick(
-                    "Medical-document verification",
-                    "চিকিৎসা নথি যাচাই",
-                  )}
+                  {pick("Medical-document verification", "চিকিৎসা নথি যাচাই")}
                 </h3>
               </div>
-  
+
               <FileCheck2 className="h-6 w-6 text-archive-teal" />
             </div>
-  
+
             <p className="mt-3 text-sm leading-6 text-archive-muted">
               {pick(
                 "Verify only relevance and readability for this support request. Do not diagnose, alter or publish medical information.",
                 "এই সহায়তা অনুরোধের জন্য কেবল প্রাসঙ্গিকতা ও পাঠযোগ্যতা যাচাই করুন। চিকিৎসা তথ্য বিশ্লেষণ, পরিবর্তন বা প্রকাশ করবেন না।",
               )}
             </p>
-  
+
             <div className="mt-5 space-y-4">
               {documents.map((document, index) => {
                 const documentId =
                   document.id || document._id || `document-${index}`;
-  
+
                 return (
                   <div
                     key={documentId}
                     className="rounded-2xl border border-white/[0.08] p-4"
                   >
                     <AdminFilePreview file={document} compact />
-  
+
                     <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
                       <StatusBadge status={document.status || "Pending"} />
-  
+
                       <div className="flex gap-2">
                         <button
                           type="button"
@@ -1066,7 +1017,7 @@ export default function AdminSupportCaseDetail() {
                           <CheckCircle2 className="h-4 w-4" />
                           {pick("Verify", "যাচাই")}
                         </button>
-  
+
                         <button
                           type="button"
                           onClick={() => verifyDocument(document, "Rejected")}
@@ -1080,7 +1031,7 @@ export default function AdminSupportCaseDetail() {
                   </div>
                 );
               })}
-  
+
               {!documents.length && (
                 <div className="rounded-xl border border-dashed border-white/15 p-8 text-center text-sm text-archive-muted">
                   {pick(
@@ -1091,22 +1042,23 @@ export default function AdminSupportCaseDetail() {
               )}
             </div>
           </section>
-  
+
           <section className="admin-card">
             <p className="eyebrow">{pick("Case progress", "কেসের অগ্রগতি")}</p>
-  
+
             <div className="mt-5 space-y-4">
               {progressSteps.map((step, index) => (
                 <div key={`${String(step)}-${index}`} className="flex gap-3">
                   <span
-                    className={`mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full text-[11px] font-bold ${index === progressSteps.length - 1
+                    className={`mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full text-[11px] font-bold ${
+                      index === progressSteps.length - 1
                         ? "bg-archive-amber text-ink-950"
                         : "bg-archive-teal/15 text-archive-teal"
-                      }`}
+                    }`}
                   >
                     {index + 1}
                   </span>
-  
+
                   <p className="text-sm text-[#D8D3CA]">
                     {typeof step === "string"
                       ? step
@@ -1117,14 +1069,14 @@ export default function AdminSupportCaseDetail() {
             </div>
           </section>
         </div>
-  
+
         <section className="admin-card flex h-[calc(100dvh-8rem)] min-h-[620px] max-h-[900px] flex-col overflow-hidden p-0 2xl:sticky 2xl:top-28">
           <div className="shrink-0 border-b border-white/10 px-4 py-3 sm:px-5 sm:py-4">
             <div className="flex items-center gap-3">
               <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-archive-teal/10 text-archive-teal">
                 <UserRound className="h-5 w-5" />
               </span>
-  
+
               <div className="min-w-0">
                 <h3 className="truncate font-semibold text-white">
                   {pick(
@@ -1138,7 +1090,7 @@ export default function AdminSupportCaseDetail() {
               </div>
             </div>
           </div>
-  
+
           {roomStopped && (
             <div className="shrink-0 border-b border-archive-rose/20 bg-archive-rose/[0.06] px-4 py-3 text-sm text-[#DAB8BE] sm:px-5">
               <PauseCircle className="mr-2 inline h-4 w-4 text-archive-rose" />
@@ -1150,7 +1102,7 @@ export default function AdminSupportCaseDetail() {
                 )}
             </div>
           )}
-  
+
           <div
             ref={messageListRef}
             className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain bg-[radial-gradient(circle_at_top,rgba(75,155,141,.06),transparent_38%)] p-4 sm:p-5"
@@ -1158,7 +1110,7 @@ export default function AdminSupportCaseDetail() {
             {messages.length ? (
               messages.map((item, index) => {
                 const adminMessage = isAdminMessage(item);
-  
+
                 return (
                   <div
                     key={
@@ -1166,36 +1118,39 @@ export default function AdminSupportCaseDetail() {
                       item._id ||
                       `${item.sender}-${item.createdAt}-${index}`
                     }
-                    className={`flex ${adminMessage ? "justify-end" : "justify-start"
-                      }`}
+                    className={`flex ${
+                      adminMessage ? "justify-end" : "justify-start"
+                    }`}
                   >
                     <div
-                      className={`max-w-[92%] rounded-2xl border p-3 sm:max-w-[86%] sm:p-4 ${adminMessage
+                      className={`max-w-[92%] rounded-2xl border p-3 sm:max-w-[86%] sm:p-4 ${
+                        adminMessage
                           ? "rounded-br-sm border-archive-amber/20 bg-archive-amber/[0.08]"
                           : "rounded-bl-sm border-white/10 bg-white/[0.035]"
-                        }`}
+                      }`}
                     >
                       <div className="flex items-center justify-between gap-5">
                         <p
-                          className={`text-xs font-semibold ${adminMessage
+                          className={`text-xs font-semibold ${
+                            adminMessage
                               ? "text-archive-amber"
                               : "text-archive-teal"
-                            }`}
+                          }`}
                         >
                           {getMessageName(item)}
                         </p>
-  
+
                         <span className="text-[10px] text-archive-muted sm:text-[11px]">
                           {getMessageTime(item)}
                         </span>
                       </div>
-  
+
                       {getMessageText(item) && (
                         <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6 text-[#E0DBD3]">
                           {getMessageText(item)}
                         </p>
                       )}
-  
+
                       <MessageAttachments message={item} pick={pick} />
                     </div>
                   </div>
@@ -1207,7 +1162,7 @@ export default function AdminSupportCaseDetail() {
               </div>
             )}
           </div>
-  
+
           {roomStopped ? (
             <div className="sticky bottom-0 z-20 shrink-0 border-t border-white/10 bg-[#0D111A]/98 p-3 shadow-[0_-18px_35px_rgba(0,0,0,.28)] backdrop-blur-xl sm:p-4">
               <div className="rounded-xl border border-archive-rose/25 bg-archive-rose/[0.07] p-4 text-center">
@@ -1243,15 +1198,12 @@ export default function AdminSupportCaseDetail() {
                         alt={`Selected attachment ${attachment.name}`}
                         className="mx-auto max-h-44 w-full rounded-lg object-contain"
                       />
-  
+
                       <button
                         type="button"
                         onClick={clearAttachment}
                         className="focus-ring absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-full bg-black/75 text-white"
-                        aria-label={pick(
-                          "Remove attachment",
-                          "সংযুক্তি সরান",
-                        )}
+                        aria-label={pick("Remove attachment", "সংযুক্তি সরান")}
                       >
                         <X className="h-4 w-4" />
                       </button>
@@ -1271,10 +1223,7 @@ export default function AdminSupportCaseDetail() {
                         type="button"
                         onClick={clearAttachment}
                         className="focus-ring p-2 text-archive-rose"
-                        aria-label={pick(
-                          "Remove attachment",
-                          "সংযুক্তি সরান",
-                        )}
+                        aria-label={pick("Remove attachment", "সংযুক্তি সরান")}
                       >
                         <X className="h-4 w-4" />
                       </button>
@@ -1282,7 +1231,7 @@ export default function AdminSupportCaseDetail() {
                   )}
                 </div>
               )}
-  
+
               <div className="flex items-end gap-2 sm:gap-3">
                 <button
                   type="button"
@@ -1295,7 +1244,7 @@ export default function AdminSupportCaseDetail() {
                 >
                   <Paperclip className="h-5 w-5" />
                 </button>
-  
+
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -1305,7 +1254,7 @@ export default function AdminSupportCaseDetail() {
                     selectAttachment(event.target.files?.[0] || null)
                   }
                 />
-  
+
                 <textarea
                   value={message}
                   onChange={(event) => setMessage(event.target.value)}
@@ -1317,7 +1266,7 @@ export default function AdminSupportCaseDetail() {
                     "পরবর্তী পরিষ্কার পদক্ষেপ লিখুন…",
                   )}
                 />
-  
+
                 <button
                   type="submit"
                   disabled={sending || (!message.trim() && !attachment)}
@@ -1335,7 +1284,7 @@ export default function AdminSupportCaseDetail() {
                   </span>
                 </button>
               </div>
-  
+
               <p className="mt-2 text-[10px] text-archive-muted">
                 {pick(
                   "Enter to send • Shift + Enter for a new line",
@@ -1346,7 +1295,7 @@ export default function AdminSupportCaseDetail() {
           )}
         </section>
       </div>
-  
+
       {stopDialogOpen && (
         <div
           className="fixed inset-0 z-[170] flex items-center justify-center p-4"
@@ -1360,7 +1309,7 @@ export default function AdminSupportCaseDetail() {
             onClick={() => !savingAction && setStopDialogOpen(false)}
             aria-label={pick("Close dialog", "ডায়ালগ বন্ধ করুন")}
           />
-  
+
           <div className="relative w-full max-w-lg overflow-hidden rounded-2xl border border-white/10 bg-ink-800 shadow-2xl">
             <div className="flex items-start justify-between gap-4 border-b border-white/10 p-5">
               <div>
@@ -1377,7 +1326,7 @@ export default function AdminSupportCaseDetail() {
                   )}
                 </h2>
               </div>
-  
+
               <button
                 type="button"
                 onClick={() => setStopDialogOpen(false)}
@@ -1387,7 +1336,7 @@ export default function AdminSupportCaseDetail() {
                 <X className="h-5 w-5" />
               </button>
             </div>
-  
+
             <div className="p-5">
               <p className="text-sm leading-7 text-archive-muted">
                 {pick(
@@ -1395,7 +1344,7 @@ export default function AdminSupportCaseDetail() {
                   "হালনাগাদ অবস্থা ও বন্ধ করার কারণ ব্যবহারকারীকে দেখানো হবে। আগের বার্তা ও সংযুক্তি দৃশ্যমান থাকবে, তবে উভয় বার্তা লেখার অংশ বন্ধ হবে।",
                 )}
               </p>
-  
+
               <label className="mt-5 block">
                 <span className="field-label">
                   {pick(
@@ -1420,7 +1369,7 @@ export default function AdminSupportCaseDetail() {
                 </p>
               </label>
             </div>
-  
+
             <div className="flex justify-end gap-3 border-t border-white/10 p-5">
               <button
                 type="button"
@@ -1430,7 +1379,7 @@ export default function AdminSupportCaseDetail() {
               >
                 {pick("Cancel", "বাতিল")}
               </button>
-  
+
               <button
                 type="button"
                 onClick={confirmStop}

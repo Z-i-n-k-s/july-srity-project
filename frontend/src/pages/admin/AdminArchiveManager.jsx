@@ -246,21 +246,76 @@ export default function AdminArchiveManager() {
   const toast = useToast();
   const { pick } = useLanguage();
 
-  useEffect(() => {
-    let active = true;
-    adminApi.archive().then((payload) => {
+  // AFTER
+useEffect(() => {
+  let active = true;
+
+  Promise.all([adminApi.archive(), adminApi.submissions()])
+    .then(([archivePayload, subsPayload]) => {
       if (!active) return;
-      const data = unwrap(payload);
-      if (Array.isArray(data)) setItems(data);
-    }).catch((error) => {
+
+      const archiveData = unwrap(archivePayload);
+      const subsData = unwrap(subsPayload);
+
+      // Build rejected title set from submissions
+      const rejectedTitles = new Set(
+        (Array.isArray(subsData) ? subsData : [])
+          .filter((s) => s.status === 'Rejected')
+          .map((s) => (s.title || '').toLowerCase().trim()),
+      );
+
+      if (Array.isArray(archiveData)) {
+        setItems(
+          archiveData.filter(
+            (item) => !rejectedTitles.has((item.title || '').toLowerCase().trim()),
+          ),
+        );
+      }
+    })
+    .catch((error) => {
       if (active) {
         setItems([]);
-        toast.error(error.message || pick("Unable to load archive records.", "আর্কাইভ রেকর্ড লোড করা যায়নি।"));
+        toast.error(
+          error.message ||
+            pick('Unable to load archive records.', 'আর্কাইভ রেকর্ড লোড করা যায়নি।'),
+        );
       }
     });
-    return () => { active = false; };
-  }, []);
 
+  return () => { active = false; };
+}, []);
+ // Remove archive item when submission is rejected on submissions page
+useEffect(() => {
+  const handleReviewUpdate = ({ detail }) => {
+    const sub = detail?.submission;
+    if (!sub || sub.status !== 'Rejected') return;
+
+    const norm = (t) => (t || '').toLowerCase().trim();
+    const subSlug = norm(sub.title)
+      .replace(/\s+/g, '-')
+      .replace(/[^a-z0-9-]/g, '');
+
+    setItems((current) =>
+      current.filter(
+        (item) =>
+          item.slug !== subSlug &&
+          norm(item.title) !== norm(sub.title),
+      ),
+    );
+
+    // Close modal if showing the removed item
+    setSelected((current) =>
+      current &&
+      (current.slug === subSlug || norm(current.title) === norm(sub.title))
+        ? null
+        : current,
+    );
+  };
+
+  window.addEventListener('july-smriti:submission-review-updated', handleReviewUpdate);
+  return () =>
+    window.removeEventListener('july-smriti:submission-review-updated', handleReviewUpdate);
+}, []);
   const filtered = useMemo(
     () =>
       items.filter((item) =>
