@@ -55,7 +55,9 @@ const listPublic = asyncHandler(async (req, res) => {
   let query = DocumentaryItem.find(filter).sort(sort).skip(skip).limit(limit);
   query = publicPopulate(query);
   const [items, total] = await Promise.all([query, DocumentaryItem.countDocuments(filter)]);
-  return sendSuccess(res, { message: "Published archive records retrieved successfully.", data: items, meta: paginationMeta({ page, limit, total }) });
+  // AFTER
+res.set('Cache-Control', 'no-store');
+return sendSuccess(res, { message: "Published archive records retrieved successfully.", data: items, meta: paginationMeta({ page, limit, total }) });
 });
 
 const getPublicBySlug = asyncHandler(async (req, res) => {
